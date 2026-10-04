@@ -9,7 +9,10 @@ import ingest
 
 DATA_DIR = os.environ.get("DATA_DIR", "/data")
 CACHE_DIR = os.environ.get("CACHE_DIR", "/cache")
-os.makedirs(CACHE_DIR, exist_ok=True)
+try:
+    os.makedirs(CACHE_DIR, exist_ok=True)
+except (PermissionError, OSError):
+    pass
 
 AUTH_DB = os.environ.get("AUTH_DB", os.environ.get("SBV_AUTH_DB", os.path.join(DATA_DIR, "sbv.db")))
 SBV_AUTH_DB = AUTH_DB  # Backward compatibility alias
@@ -42,7 +45,10 @@ def init_auth_db():
                 id TEXT PRIMARY KEY,
                 username TEXT UNIQUE NOT NULL,
                 password_hash TEXT NOT NULL,
-                created_at INTEGER NOT NULL
+                created_at INTEGER NOT NULL,
+                display_name TEXT,
+                preferred_username TEXT,
+                email TEXT
             );
         """)
         conn.execute("""
@@ -53,6 +59,14 @@ def init_auth_db():
                 expires_at INTEGER NOT NULL
             );
         """)
+        # Auto-migrate existing users table columns if missing
+        cols = [r[1] for r in conn.execute("PRAGMA table_info(users)").fetchall()]
+        if "display_name" not in cols:
+            conn.execute("ALTER TABLE users ADD COLUMN display_name TEXT;")
+        if "preferred_username" not in cols:
+            conn.execute("ALTER TABLE users ADD COLUMN preferred_username TEXT;")
+        if "email" not in cols:
+            conn.execute("ALTER TABLE users ADD COLUMN email TEXT;")
         conn.commit()
     finally:
         conn.close()

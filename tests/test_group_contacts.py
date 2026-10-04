@@ -9,6 +9,9 @@ import time
 import unittest
 from unittest.mock import patch
 
+os.environ.setdefault("CACHE_DIR", os.path.join(tempfile.gettempdir(), "rekall_test_cache"))
+os.environ.setdefault("DATA_DIR", os.path.join(tempfile.gettempdir(), "rekall_test_data"))
+
 import contacts
 import ingest
 

@@ -79,22 +79,31 @@ def get_user_info(user_id):
         uri = f"file:{AUTH_DB}?mode=ro"
         conn = sqlite3.connect(uri, uri=True, timeout=2.0)
         conn.row_factory = sqlite3.Row
-        row = conn.execute("SELECT id, username, created_at FROM users WHERE id = ?", (user_id,)).fetchone()
+        row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
         conn.close()
         if row:
+            row_keys = row.keys()
+            disp_col = row["display_name"] if "display_name" in row_keys else None
+            pref_col = row["preferred_username"] if "preferred_username" in row_keys else None
+            email_col = row["email"] if "email" in row_keys else None
+
             cached = user_profile_cache.get(user_id, {})
-            disp = cached.get("name")
+            disp = cached.get("name") or disp_col
+            pref = cached.get("username") or pref_col
+            email = cached.get("email") or email_col or ""
+
             if not disp:
-                uname = row["username"]
-                if re.match(r'^[0-9a-fA-F-]{36}$', uname):
-                    disp = "User"
-                else:
+                uname = pref or row["username"]
+                if uname and not re.match(r'^[0-9a-fA-F-]{36}$', uname):
                     disp = uname
+                else:
+                    disp = "User"
+
             return {
                 "id": row["id"],
-                "username": row["username"],
+                "username": pref or row["username"],
                 "display_name": disp,
-                "email": cached.get("email", "")
+                "email": email
             }
     except Exception as e:
         print(f"Error querying user info: {e}")
@@ -151,17 +160,22 @@ def find_or_create_user_and_session(userinfo):
     conn = sqlite3.connect(AUTH_DB, timeout=5.0)
     try:
         # Match sub or preferred_username in users
-        row = conn.execute("SELECT id FROM users WHERE username = ?", (sub,)).fetchone()
-        if not row and preferred_username:
-            row = conn.execute("SELECT id FROM users WHERE username = ?", (preferred_username,)).fetchone()
+        row = conn.execute(
+            "SELECT id FROM users WHERE username = ? OR username = ? OR preferred_username = ?",
+            (sub, preferred_username, preferred_username)
+        ).fetchone()
 
         if row:
             user_id = row[0]
+            conn.execute(
+                "UPDATE users SET display_name = ?, preferred_username = ?, email = ? WHERE id = ?",
+                (name, preferred_username, email, user_id)
+            )
         else:
             user_id = str(uuid.uuid4())
             conn.execute(
-                "INSERT INTO users (id, username, password_hash, created_at) VALUES (?, ?, ?, ?)",
-                (user_id, sub, "*oidc*", int(time.time()))
+                "INSERT INTO users (id, username, password_hash, created_at, display_name, preferred_username, email) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (user_id, sub, "*oidc*", int(time.time()), name, preferred_username, email)
             )
 
         session_id = secrets.token_hex(32)

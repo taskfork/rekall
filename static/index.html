@@ -94,6 +94,7 @@
               <li class="menu-title px-3 py-1.5 text-xs opacity-60">
                 Signed in as
                 <span id="user-display-name" class="font-bold text-base-content block truncate text-sm mt-0.5">User</span>
+                <span id="user-email" class="text-xs opacity-60 block truncate font-normal hidden"></span>
               </li>
               <div class="divider my-1"></div>
               <li>
@@ -2812,11 +2813,16 @@
         if (res.ok) {
           const user = await res.json();
           const name = user.display_name || user.username || 'User';
-          const initial = name.charAt(0).toUpperCase();
+          const initial = getInitials(name);
           const initialElem = document.getElementById('user-avatar-initial');
           const nameElem = document.getElementById('user-display-name');
+          const emailElem = document.getElementById('user-email');
           if (initialElem) initialElem.textContent = initial;
           if (nameElem) nameElem.textContent = name;
+          if (emailElem && user.email) {
+            emailElem.textContent = user.email;
+            emailElem.classList.remove('hidden');
+          }
         }
       } catch (err) {
         console.error('Failed to load user profile:', err);
