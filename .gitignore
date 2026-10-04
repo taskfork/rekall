@@ -1,0 +1,15 @@
+# Databases and user data
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Caches
+cache/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Local Environment and Secrets
+.env

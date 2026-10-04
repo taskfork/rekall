@@ -1,0 +1,2632 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Rekall</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1d232a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  
+  <link rel="stylesheet" href="/css/daisyui.css">
+  <script src="/js/tailwind.js"></script>
+  <script src="/js/chart.umd.min.js"></script>
+  <style>
+    @keyframes jumpContourGlow {
+      0% {
+        filter: drop-shadow(0 0 0px oklch(var(--p) / 0)) drop-shadow(0 0 0px oklch(var(--p) / 0));
+      }
+      20% {
+        filter: drop-shadow(0 0 2px oklch(var(--p) / 0.9)) drop-shadow(0 0 8px oklch(var(--p) / 0.75));
+      }
+      55% {
+        filter: drop-shadow(0 0 2px oklch(var(--p) / 0.7)) drop-shadow(0 0 6px oklch(var(--p) / 0.5));
+      }
+      100% {
+        filter: drop-shadow(0 0 0px oklch(var(--p) / 0)) drop-shadow(0 0 0px oklch(var(--p) / 0));
+      }
+    }
+    .chat-bubble-highlight {
+      animation: jumpContourGlow 2.5s ease-out forwards;
+    }
+  </style>
+</head>
+<body class="h-full h-screen h-[100dvh] w-full overflow-hidden bg-base-100 text-base-content flex">
+
+  <div id="app" class="flex w-full h-full max-h-screen max-h-[100dvh] overflow-hidden">
+    
+    <!-- Sidebar: Contacts & Global Search -->
+    <aside id="sidebar" class="w-full md:w-80 lg:w-96 flex-shrink-0 h-full max-h-full min-h-0 flex flex-col bg-base-200 border-r border-base-300 overflow-hidden">
+      
+      <!-- Sidebar Header -->
+      <div class="navbar bg-base-200 border-b border-base-300 px-4 h-16 min-h-16 py-0 flex justify-between items-center flex-shrink-0">
+        <div class="flex items-center gap-2.5 h-full">
+          <svg class="w-6 h-6 text-primary fill-current flex-shrink-0" viewBox="0 0 24 24">
+            <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
+          </svg>
+          <span class="font-bold text-lg tracking-tight leading-none">Rekall</span>
+        </div>
+
+        <div class="flex items-center gap-1.5 h-full">
+          <!-- Archive Stats Button -->
+          <button id="btn-stats-toggle" class="btn btn-ghost btn-circle btn-sm hover:bg-base-300 transition-colors" title="Archive Statistics & Telemetry">
+            <svg class="w-4 h-4 opacity-80 fill-current" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+          </button>
+
+          <!-- User Profile & Actions Dropdown -->
+          <div class="dropdown dropdown-end">
+            <label tabindex="0" class="btn btn-ghost btn-circle avatar placeholder hover:bg-base-300 transition-colors" title="Account & Settings">
+              <div class="bg-primary/20 text-primary font-bold rounded-full w-9 h-9 flex items-center justify-center border border-primary/30 shadow-sm">
+                <span id="user-avatar-initial" class="text-sm uppercase">U</span>
+              </div>
+            </label>
+            <ul tabindex="0" class="menu menu-sm dropdown-content mt-2 z-[60] p-2 shadow-2xl bg-base-200 border border-base-300 rounded-box w-60">
+              <li class="menu-title px-3 py-1.5 text-xs opacity-60">
+                Signed in as
+                <span id="user-display-name" class="font-bold text-base-content block truncate text-sm mt-0.5">User</span>
+              </li>
+              <div class="divider my-1"></div>
+              <li>
+                <button id="btn-stats-menu" class="flex items-center justify-between py-2.5 font-medium w-full text-left" title="View archive statistics">
+                  <span class="flex items-center gap-2.5">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                    Archive Stats
+                  </span>
+                </button>
+              </li>
+              <li>
+                <button id="btn-refresh-db" class="flex items-center justify-between py-2.5" title="Re-index database">
+                  <span class="flex items-center gap-2.5">
+                    <span id="refresh-icon-container" class="flex items-center justify-center w-4 h-4">
+                      <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+                    </span>
+                    <span id="refresh-text-container" class="font-medium">Re-index Database</span>
+                  </span>
+                </button>
+              </li>
+              <li>
+                <button id="btn-open-upload" class="flex items-center justify-between py-2.5 font-medium w-full text-left" title="Upload XML backup file">
+                  <span class="flex items-center gap-2.5">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                    Upload Backups
+                  </span>
+                </button>
+              </li>
+            <li>
+              <button id="btn-shortcuts" class="flex items-center justify-between py-2.5" title="View keyboard shortcuts">
+                <span class="flex items-center gap-2.5 font-medium">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+                  Shortcuts
+                </span>
+                <kbd class="kbd kbd-xs">?</kbd>
+              </button>
+            </li>
+            <div class="divider my-1"></div>
+            <li>
+              <a href="/api/auth/logout" class="text-error hover:bg-error/10 flex items-center gap-2.5 py-2.5 font-medium">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                Log out
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Messages Search Box (DaisyUI input with embedded actions) -->
+      <div class="p-3 border-b border-base-300 flex-shrink-0">
+        <label class="input input-bordered input-sm flex items-center gap-2 bg-base-100 focus-within:outline-none focus-within:border-primary">
+          <svg class="w-4 h-4 opacity-40 fill-current flex-shrink-0" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+          <input type="text" id="global-search" class="grow bg-transparent p-0 text-xs border-none outline-none focus:outline-none focus:ring-0" placeholder="Search contacts & messages..." autocomplete="off">
+          <div class="flex items-center flex-shrink-0">
+            <kbd id="search-kbd-hint" class="kbd kbd-xs select-none opacity-50 hidden md:inline-flex" title="Press / to focus">/</kbd>
+            <button type="button" id="btn-clear-search" class="btn btn-ghost btn-circle btn-xs hidden hover:bg-base-200" title="Clear search">
+              <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+            </button>
+          </div>
+        </label>
+      </div>
+
+      <!-- Contact Filter Tabs (DaisyUI tabs-boxed) -->
+      <div id="contact-tabs-container" class="px-3 py-2 border-b border-base-300 flex-shrink-0">
+        <div class="tabs tabs-boxed bg-base-300 p-1 flex">
+          <button id="tab-known" class="tab tab-active flex-1 text-xs font-semibold gap-1.5 transition-all">
+            <span>Contacts</span>
+            <span id="badge-known-count" class="badge badge-sm badge-ghost">0</span>
+          </button>
+          <button id="tab-unknown" class="tab flex-1 text-xs font-semibold gap-1.5 transition-all">
+            <span>Unknown</span>
+            <span id="badge-unknown-count" class="badge badge-sm badge-ghost">0</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Contacts & Search Results Container -->
+      <div id="contacts-list" class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden divide-y divide-base-300 pb-[env(safe-area-inset-bottom)] overscroll-contain">
+        <div class="p-4 text-center opacity-50 text-sm">Loading contacts...</div>
+      </div>
+    </aside>
+
+    <!-- Main Chat Area -->
+    <main id="main-chat" class="flex-1 h-full max-h-full min-h-0 flex flex-col bg-base-100 relative min-w-0 overflow-hidden hidden md:flex">
+      
+      <!-- Top Chat Header -->
+      <div class="navbar bg-base-200 border-b border-base-300 h-16 min-h-16 px-4 py-0 z-10 flex justify-between items-center flex-shrink-0">
+        <div class="flex items-center gap-3 min-w-0 h-full">
+          <button id="btn-back" class="btn btn-ghost btn-circle btn-sm md:hidden" title="Back to Contacts">
+            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+          </button>
+          <div class="min-w-0 flex flex-col justify-center">
+            <div class="flex items-center gap-2 leading-none">
+              <span id="chat-title" class="font-bold text-base truncate">Select a Conversation</span>
+              <span id="stats-span-badge" class="badge badge-sm badge-neutral font-mono hidden"></span>
+            </div>
+            <div id="chat-sub" class="text-xs opacity-50 truncate leading-none mt-1">SMS Archive</div>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 h-full">
+          <!-- Conversation Gallery Button (Visible when chat open) -->
+          <button id="btn-gallery-toggle" class="btn btn-ghost btn-sm gap-1.5 hidden" title="Toggle Media Gallery">
+            <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+              <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
+            </svg>
+            <span class="hidden sm:inline">Media</span>
+            <span id="gallery-count-badge" class="badge badge-sm badge-neutral">0</span>
+          </button>
+
+          <!-- Stats Header Action Controls (Visible when stats open) -->
+          <div id="stats-header-actions" class="flex items-center gap-1.5 hidden">
+            <button id="btn-refresh-stats" class="btn btn-ghost btn-circle btn-sm" title="Refresh statistics">
+              <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+            </button>
+            <button id="btn-close-stats" class="btn btn-ghost btn-sm gap-1 hover:bg-base-300" title="Close stats (Esc)">
+              <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+              <span>Back to Chat</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Floating Date Pill -->
+      <div class="pointer-events-none absolute top-[calc(4.5rem+env(safe-area-inset-top,0px))] left-1/2 -translate-x-1/2 z-10 flex justify-center">
+        <span id="chat-date-pill" class="badge badge-neutral badge-lg text-sm font-semibold px-4 py-3 shadow-lg border border-base-content/10 hidden whitespace-nowrap backdrop-blur-md bg-neutral/85 text-neutral-content transition-all duration-200" title="Date of visible messages"></span>
+      </div>
+
+      <!-- Messages Viewport -->
+      <div id="messages-viewport" class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 overscroll-contain">
+        <div class="hero h-full">
+          <div class="hero-content text-center opacity-50">
+            <div>
+              <svg class="w-12 h-12 mx-auto mb-2 fill-current opacity-40" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+              <p>Choose a contact or search to view text history.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Conversation Media Gallery View (Grid over conversation list) -->
+      <div id="conversation-gallery-view" class="flex-1 min-h-0 flex-col bg-base-100 hidden">
+        <div class="bg-base-200/70 backdrop-blur border-b border-base-300 px-4 py-2.5 flex justify-between items-center flex-shrink-0">
+          <div class="flex items-center gap-2">
+            <button id="btn-close-gallery" class="btn btn-ghost btn-sm gap-1" title="Back to conversation (Esc)">
+              <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+              <span>Back to Chat</span>
+            </button>
+            <span class="text-xs opacity-40">|</span>
+            <span class="text-xs font-semibold opacity-70">Media Gallery</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span id="gallery-stats-label" class="badge badge-ghost badge-sm font-mono">0 items</span>
+          </div>
+        </div>
+
+        <div id="gallery-grid-container" class="flex-1 min-h-0 overflow-y-auto p-4 overscroll-contain">
+          <!-- Injected Grid -->
+        </div>
+      </div>
+
+      <!-- Archive Statistics View (Overlays conversation window across entire archive) -->
+      <div id="stats-dashboard-view" class="flex-1 min-h-0 flex-col bg-base-100 hidden">
+        <!-- Scrollable Dashboard Content -->
+        <div id="stats-content-area" class="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 space-y-6 overscroll-contain">
+          <!-- Loading State -->
+          <div id="stats-loading" class="hero h-64">
+            <div class="hero-content text-center opacity-60">
+              <div class="flex flex-col items-center gap-3">
+                <span class="loading loading-spinner loading-lg text-primary"></span>
+                <p class="text-sm font-medium">Aggregating lifetime archive telemetry...</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Main Stats Container -->
+          <div id="stats-cards-container" class="space-y-6 hidden">
+            <!-- Summary KPI Grid -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <div class="stat bg-base-200 border border-base-300 rounded-box p-4 shadow-sm">
+                <div class="stat-title text-xs font-semibold uppercase tracking-wider opacity-60">Total Messages</div>
+                <div id="stat-total-messages" class="stat-value text-2xl lg:text-3xl font-extrabold text-primary my-1">-</div>
+                <div id="stat-sms-mms-sub" class="stat-desc text-xs font-medium opacity-70">- SMS · - MMS</div>
+              </div>
+
+              <div class="stat bg-base-200 border border-base-300 rounded-box p-4 shadow-sm">
+                <div class="stat-title text-xs font-semibold uppercase tracking-wider opacity-60">Sent vs Received</div>
+                <div id="stat-sent-recv" class="stat-value text-2xl lg:text-3xl font-extrabold my-1">- / -</div>
+                <div class="w-full bg-base-300 h-2 rounded-full overflow-hidden mt-1 flex">
+                  <div id="stat-sent-bar" class="bg-primary h-full transition-all duration-500" style="width: 50%"></div>
+                  <div id="stat-recv-bar" class="bg-secondary h-full transition-all duration-500" style="width: 50%"></div>
+                </div>
+                <div class="stat-desc flex justify-between text-[11px] font-medium opacity-70 mt-1">
+                  <span id="stat-sent-pct" class="text-primary font-bold">50% Sent</span>
+                  <span id="stat-recv-pct" class="text-secondary font-bold">50% Received</span>
+                </div>
+              </div>
+
+              <div class="stat bg-base-200 border border-base-300 rounded-box p-4 shadow-sm">
+                <div class="stat-title text-xs font-semibold uppercase tracking-wider opacity-60">Media Attachments</div>
+                <div id="stat-total-media" class="stat-value text-2xl lg:text-3xl font-extrabold text-accent my-1">-</div>
+                <div class="stat-desc text-xs font-medium opacity-70">Photos, audio & video MMS</div>
+              </div>
+
+              <div class="stat bg-base-200 border border-base-300 rounded-box p-4 shadow-sm">
+                <div class="stat-title text-xs font-semibold uppercase tracking-wider opacity-60">Lifetime Span</div>
+                <div id="stat-span-years" class="stat-value text-2xl lg:text-3xl font-extrabold text-info my-1">- Years</div>
+                <div id="stat-span-dates" class="stat-desc text-xs font-medium opacity-70">- to -</div>
+              </div>
+            </div>
+
+            <!-- Visual Charts Grid (2 columns on large screens) -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <!-- Monthly Timeline Area Chart -->
+              <div class="card bg-base-200 border border-base-300 p-4 shadow-sm flex flex-col">
+                <div class="flex justify-between items-center mb-3">
+                  <div>
+                    <h4 class="font-bold text-sm">Monthly Activity Timeline</h4>
+                    <p class="text-xs opacity-50">Volume of messages sent and received per month</p>
+                  </div>
+                  <span id="chart-timeline-range" class="badge badge-sm badge-ghost font-mono">2015 – 2026</span>
+                </div>
+                <div class="h-64 relative w-full">
+                  <canvas id="chart-timeline"></canvas>
+                </div>
+              </div>
+
+              <!-- 24-Hour Circadian Clock -->
+              <div class="card bg-base-200 border border-base-300 p-4 shadow-sm flex flex-col">
+                <div class="flex justify-between items-center mb-3">
+                  <div>
+                    <h4 class="font-bold text-sm">24-Hour Activity Clock</h4>
+                    <p class="text-xs opacity-50">Texting habits by time of day (local time)</p>
+                  </div>
+                  <span class="badge badge-sm badge-ghost font-mono">00:00 – 23:00</span>
+                </div>
+                <div class="h-64 relative w-full">
+                  <canvas id="chart-hourly"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <!-- Top 10 Conversations Leaderboard -->
+            <div class="card bg-base-200 border border-base-300 shadow-sm overflow-hidden">
+              <div class="px-5 py-4 border-b border-base-300 flex justify-between items-center">
+                <div>
+                  <h4 class="font-bold text-base">Most Active Conversations</h4>
+                  <p class="text-xs opacity-50">Top contacts ranked by total volume · Click to open chat</p>
+                </div>
+                <span class="badge badge-primary badge-sm font-semibold">Top 10</span>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="table table-sm w-full">
+                  <thead>
+                    <tr class="opacity-60 text-xs">
+                      <th class="w-12 text-center">#</th>
+                      <th>Contact</th>
+                      <th class="text-right">Messages</th>
+                      <th class="w-48 text-center">Sent / Received Ratio</th>
+                    </tr>
+                  </thead>
+                  <tbody id="top-contacts-tbody" class="divide-y divide-base-300">
+                    <!-- Injected rows -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Chat Bar -->
+      <div id="chat-bottom-bar" class="navbar bg-base-200 border-t border-base-300 min-h-12 px-4 pb-[env(safe-area-inset-bottom)] flex justify-between items-center flex-shrink-0 hidden">
+        <span id="loaded-count-label" class="badge badge-ghost badge-sm">0 messages loaded</span>
+        <button id="btn-jump-latest" class="btn btn-primary btn-sm">Jump to Latest</button>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Keyboard Shortcuts Modal -->
+  <dialog id="modal-shortcuts" class="modal">
+    <div class="modal-box max-w-md bg-base-200 border border-base-300 shadow-2xl">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="font-bold text-lg flex items-center gap-2">
+          <svg class="w-5 h-5 text-primary fill-current" viewBox="0 0 24 24"><path d="M20 5H4c-1.1 0-1.99.9-1.99 2L2 17c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm-9 3h2v2h-2V8zm0 3h2v2h-2v-2zM8 8h2v2H8V8zm0 3h2v2H8v-2zm-1 2H5v-2h2v2zm0-3H5V8h2v2zm9 7H8v-2h8v2zm0-4h-2v-2h2v2zm0-3h-2V8h2v2zm3 3h-2v-2h2v2zm0-3h-2V8h2v2z"/></svg>
+          Keyboard Shortcuts
+        </h3>
+        <form method="dialog">
+          <button class="btn btn-sm btn-circle btn-ghost">✕</button>
+        </form>
+      </div>
+
+      <div class="space-y-3 text-sm">
+        <div class="flex justify-between items-center py-1.5 border-b border-base-300">
+          <span class="opacity-80">Search contacts & messages</span>
+          <div class="flex gap-1 items-center">
+            <kbd class="kbd kbd-sm">/</kbd>
+            <span class="opacity-40 text-xs">or</span>
+            <kbd class="kbd kbd-sm">⌘</kbd><kbd class="kbd kbd-sm">K</kbd>
+          </div>
+        </div>
+        <div class="flex justify-between items-center py-1.5 border-b border-base-300">
+          <span class="opacity-80">Next conversation / match</span>
+          <div class="flex gap-1 items-center">
+            <kbd class="kbd kbd-sm">↓</kbd>
+            <span class="opacity-40 text-xs">or</span>
+            <kbd class="kbd kbd-sm">J</kbd>
+          </div>
+        </div>
+        <div class="flex justify-between items-center py-1.5 border-b border-base-300">
+          <span class="opacity-80">Previous conversation / match</span>
+          <div class="flex gap-1 items-center">
+            <kbd class="kbd kbd-sm">↑</kbd>
+            <span class="opacity-40 text-xs">or</span>
+            <kbd class="kbd kbd-sm">K</kbd>
+          </div>
+        </div>
+        <div class="flex justify-between items-center py-1.5 border-b border-base-300">
+          <span class="opacity-80">Open highlighted conversation</span>
+          <kbd class="kbd kbd-sm">Enter</kbd>
+        </div>
+        <div class="flex justify-between items-center py-1.5 border-b border-base-300">
+          <span class="opacity-80">Switch to Contacts tab</span>
+          <kbd class="kbd kbd-sm">1</kbd>
+        </div>
+        <div class="flex justify-between items-center py-1.5 border-b border-base-300">
+          <span class="opacity-80">Switch to Unknown tab</span>
+          <kbd class="kbd kbd-sm">2</kbd>
+        </div>
+        <div class="flex justify-between items-center py-1.5 border-b border-base-300">
+          <span class="opacity-80">Toggle Media Gallery</span>
+          <kbd class="kbd kbd-sm">G</kbd>
+        </div>
+        <div class="flex justify-between items-center py-1.5 border-b border-base-300">
+          <span class="opacity-80">Toggle Archive Stats</span>
+          <kbd class="kbd kbd-sm">S</kbd>
+        </div>
+        <div class="flex justify-between items-center py-1.5 border-b border-base-300">
+          <span class="opacity-80">Navigate full screen media</span>
+          <div class="flex gap-1 items-center">
+            <kbd class="kbd kbd-sm">←</kbd>
+            <span class="opacity-40 text-xs">/</span>
+            <kbd class="kbd kbd-sm">→</kbd>
+          </div>
+        </div>
+        <div class="flex justify-between items-center py-1.5 border-b border-base-300">
+          <span class="opacity-80">Jump to latest message</span>
+          <div class="flex gap-1 items-center">
+            <kbd class="kbd kbd-sm">L</kbd>
+            <span class="opacity-40 text-xs">or</span>
+            <kbd class="kbd kbd-sm">End</kbd>
+          </div>
+        </div>
+        <div class="flex justify-between items-center py-1.5 border-b border-base-300">
+          <span class="opacity-80">Close full screen → Grid → Chat</span>
+          <kbd class="kbd kbd-sm">Esc</kbd>
+        </div>
+        <div class="flex justify-between items-center py-1.5">
+          <span class="opacity-80">Open this help dialog</span>
+          <kbd class="kbd kbd-sm">?</kbd>
+        </div>
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+      <button>close</button>
+    </form>
+  </dialog>
+
+  <!-- DaisyUI Upload Modal -->
+  <dialog id="modal-upload" class="modal">
+    <div class="modal-box max-w-lg bg-base-200 border border-base-300 shadow-2xl">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="font-bold text-lg flex items-center gap-2">
+          <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+          Upload Backup Archive
+        </h3>
+        <button type="button" id="btn-close-upload" class="btn btn-sm btn-circle btn-ghost" title="Close">✕</button>
+      </div>
+
+      <!-- Drag & Drop Zone -->
+      <div id="upload-dropzone" class="border-2 border-dashed border-base-content/20 hover:border-primary transition-all rounded-box p-6 text-center cursor-pointer bg-base-100 flex flex-col items-center justify-center gap-3">
+        <input type="file" id="file-upload-input" accept=".xml" class="hidden">
+        <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary pointer-events-none">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        </div>
+        <div class="pointer-events-none">
+          <p class="font-semibold text-sm">Drag & drop your XML backup file here</p>
+          <p class="text-xs opacity-50 mt-1">Accepts <span class="font-mono">sms-*.xml</span> or <span class="font-mono">calls-*.xml</span> from SMS Backup & Restore</p>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline btn-primary mt-1 pointer-events-none">Select File</button>
+      </div>
+
+      <!-- File details & Live Progress -->
+      <div id="upload-status-card" class="mt-4 hidden space-y-3 bg-base-100 p-4 rounded-box border border-base-300">
+        <div class="flex items-center justify-between text-xs">
+          <span id="upload-filename" class="font-bold truncate max-w-[260px]">filename.xml</span>
+          <span id="upload-filesize" class="badge badge-sm badge-neutral">0 MB</span>
+        </div>
+
+        <progress id="upload-progress-bar" class="progress progress-primary w-full h-2.5" value="0" max="100"></progress>
+
+        <div class="flex justify-between items-center text-xs opacity-75">
+          <span id="upload-status-text">Preparing upload...</span>
+          <span id="upload-percent-text">0%</span>
+        </div>
+      </div>
+
+      <!-- Alert box (errors / completion message) -->
+      <div id="upload-alert" class="mt-4 hidden alert text-xs">
+        <span id="upload-alert-text"></span>
+      </div>
+
+      <div class="modal-action mt-6 flex justify-between items-center">
+        <span class="text-[11px] opacity-40">100% Idempotent (duplicates ignored)</span>
+        <div class="flex gap-2">
+          <button type="button" id="btn-cancel-upload" class="btn btn-sm btn-ghost">Cancel</button>
+          <button type="button" id="btn-start-upload" class="btn btn-sm btn-primary hidden">Start Import</button>
+        </div>
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+      <button>close</button>
+    </form>
+  </dialog>
+
+  <!-- DaisyUI Media Lightbox Modal -->
+  <dialog id="modal-lightbox" class="modal modal-middle bg-black/90 backdrop-blur-sm">
+    <div class="modal-box w-full max-w-6xl h-[92vh] max-h-[92vh] p-0 bg-base-300 border border-base-content/10 shadow-2xl flex flex-col overflow-hidden relative">
+      <!-- Lightbox Header Bar -->
+      <div class="navbar bg-base-300 border-b border-base-content/10 px-4 min-h-12 flex justify-between items-center z-10 flex-shrink-0">
+        <div class="flex items-center gap-2">
+          <span id="lightbox-counter" class="badge badge-neutral text-xs font-mono">1 / 1</span>
+          <span id="lightbox-date" class="text-xs opacity-75"></span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <button id="btn-lightbox-jump" class="btn btn-ghost btn-xs gap-1" title="Jump to this message in conversation">
+            <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg>
+            <span class="hidden sm:inline">Jump to Message</span>
+          </button>
+          <a id="btn-lightbox-download" class="btn btn-ghost btn-circle btn-xs" target="_blank" rel="noopener noreferrer" title="Open full resolution">
+            <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+          </a>
+          <button id="btn-close-lightbox" class="btn btn-ghost btn-circle btn-sm" title="Back to grid (Esc)">✕</button>
+        </div>
+      </div>
+
+      <!-- Main Stage with Prev/Next Overlay Buttons -->
+      <div class="flex-1 min-h-0 relative flex items-center justify-center p-2 sm:p-4 select-none overflow-hidden bg-black/40">
+        <!-- Previous Button -->
+        <button id="btn-lightbox-prev" class="btn btn-circle btn-neutral bg-base-100/80 hover:bg-base-100 border-none shadow-xl absolute left-3 sm:left-4 z-20 sm:w-12 sm:h-12 w-10 h-10" title="Previous Media (← or Left Arrow)">
+          ❮
+        </button>
+
+        <!-- Media Container -->
+        <div class="w-full h-full flex items-center justify-center overflow-hidden" id="lightbox-media-container">
+          <!-- Injected img or video element -->
+        </div>
+
+        <!-- Next Button -->
+        <button id="btn-lightbox-next" class="btn btn-circle btn-neutral bg-base-100/80 hover:bg-base-100 border-none shadow-xl absolute right-3 sm:right-4 z-20 sm:w-12 sm:h-12 w-10 h-10" title="Next Media (→ or Right Arrow)">
+          ❯
+        </button>
+      </div>
+
+      <!-- Caption Footer (if body text present) -->
+      <div id="lightbox-caption" class="px-4 py-2 bg-base-300 border-t border-base-content/10 text-xs text-center opacity-85 empty:hidden max-h-16 overflow-y-auto flex-shrink-0">
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop bg-transparent">
+      <button>close</button>
+    </form>
+  </dialog>
+
+  <script>
+    const API_BASE = '/api';
+
+    // Auto-redirect to login if session expires
+    const origFetch = window.fetch;
+    window.fetch = async (...args) => {
+      const response = await origFetch(...args);
+      if (response.status === 401) {
+        window.location.href = '/api/auth/oidc/login';
+      }
+      return response;
+    };
+
+    let currentContact = null;
+    let messages = [];
+    let isFetchingOlder = false;
+    let isFetchingNewer = false;
+    let hasMoreOlder = true;
+    let hasMoreNewer = false;
+    let searchDebounceTimer = null;
+    let isJumpingToContext = false;
+
+    // Contacts pagination
+    let currentContactTab = 'known'; // 'known' or 'unknown'
+    let contactsOffset = 0;
+    const CONTACTS_LIMIT = 50;
+    let contactsHasMore = true;
+    let isFetchingContacts = false;
+
+    // Message search pagination
+    let isSearchMode = false;
+    let currentSearchQuery = '';
+    let searchMessagesOffset = 0;
+    const SEARCH_MESSAGES_LIMIT = 50;
+    let searchMessagesHasMore = false;
+    let isFetchingMoreSearch = false;
+
+    // Gallery & Lightbox state
+    let conversationMedia = [];
+    let conversationMediaTotal = 0;
+    let galleryOffset = 0;
+    const GALLERY_LIMIT = 48;
+    let galleryHasMore = false;
+    let isFetchingMedia = false;
+    let isGalleryOpen = false;
+    let currentLightboxIndex = 0;
+
+    // Elements
+    const sidebar = document.getElementById('sidebar');
+    const contactsListEl = document.getElementById('contacts-list');
+    const contactTabsContainer = document.getElementById('contact-tabs-container');
+    const tabKnown = document.getElementById('tab-known');
+    const tabUnknown = document.getElementById('tab-unknown');
+    const badgeKnownCount = document.getElementById('badge-known-count');
+    const badgeUnknownCount = document.getElementById('badge-unknown-count');
+    const mainChat = document.getElementById('main-chat');
+    const searchInput = document.getElementById('global-search');
+    const btnClearSearch = document.getElementById('btn-clear-search');
+    const btnBack = document.getElementById('btn-back');
+    const chatTitle = document.getElementById('chat-title');
+    const chatSub = document.getElementById('chat-sub');
+    const chatDatePill = document.getElementById('chat-date-pill');
+    const viewport = document.getElementById('messages-viewport');
+    const bottomBar = document.getElementById('chat-bottom-bar');
+    const loadedCountLabel = document.getElementById('loaded-count-label');
+    const btnJumpLatest = document.getElementById('btn-jump-latest');
+    const searchKbdHint = document.getElementById('search-kbd-hint');
+    const btnShortcuts = document.getElementById('btn-shortcuts');
+    const modalShortcuts = document.getElementById('modal-shortcuts');
+
+    // Gallery Elements
+    const btnGalleryToggle = document.getElementById('btn-gallery-toggle');
+    const galleryCountBadge = document.getElementById('gallery-count-badge');
+    const conversationGalleryView = document.getElementById('conversation-gallery-view');
+    const galleryGridContainer = document.getElementById('gallery-grid-container');
+    const galleryStatsLabel = document.getElementById('gallery-stats-label');
+    const btnCloseGallery = document.getElementById('btn-close-gallery');
+
+    // Lightbox Elements
+    const modalLightbox = document.getElementById('modal-lightbox');
+    const lightboxCounter = document.getElementById('lightbox-counter');
+    const lightboxDate = document.getElementById('lightbox-date');
+    const lightboxMediaContainer = document.getElementById('lightbox-media-container');
+    const lightboxCaption = document.getElementById('lightbox-caption');
+    const btnLightboxPrev = document.getElementById('btn-lightbox-prev');
+    const btnLightboxNext = document.getElementById('btn-lightbox-next');
+    const btnLightboxJump = document.getElementById('btn-lightbox-jump');
+    const btnLightboxDownload = document.getElementById('btn-lightbox-download');
+    const btnCloseLightbox = document.getElementById('btn-close-lightbox');
+
+    if (btnShortcuts && modalShortcuts) {
+      btnShortcuts.onclick = () => {
+        if (document.activeElement) document.activeElement.blur();
+        modalShortcuts.showModal();
+      };
+    }
+    if (btnGalleryToggle) {
+      btnGalleryToggle.onclick = () => toggleGalleryView();
+    }
+    if (btnCloseGallery) {
+      btnCloseGallery.onclick = () => closeGalleryView();
+    }
+    if (btnCloseLightbox && modalLightbox) {
+      btnCloseLightbox.onclick = () => modalLightbox.close();
+    }
+    if (btnLightboxPrev) {
+      btnLightboxPrev.onclick = (e) => { e.stopPropagation(); lightboxPrev(); };
+    }
+    if (btnLightboxNext) {
+      btnLightboxNext.onclick = (e) => { e.stopPropagation(); lightboxNext(); };
+    }
+    if (btnLightboxJump) {
+      btnLightboxJump.onclick = () => {
+        const item = conversationMedia[currentLightboxIndex];
+        if (!item || !currentContact) return;
+        if (modalLightbox && modalLightbox.open) modalLightbox.close();
+        if (isGalleryOpen) closeGalleryView();
+        jumpToGlobalMessage(item.id, currentContact.address, currentContact.name);
+      };
+    }
+
+    // Archive Stats Elements & State
+    let isStatsOpen = false;
+    let statsData = null;
+    let timelineChartInstance = null;
+    let hourlyChartInstance = null;
+
+    const btnStatsToggle = document.getElementById('btn-stats-toggle');
+    const btnStatsMenu = document.getElementById('btn-stats-menu');
+    const statsDashboardView = document.getElementById('stats-dashboard-view');
+    const btnCloseStats = document.getElementById('btn-close-stats');
+    const btnRefreshStats = document.getElementById('btn-refresh-stats');
+    const statsLoading = document.getElementById('stats-loading');
+    const statsCardsContainer = document.getElementById('stats-cards-container');
+    const statsSpanBadge = document.getElementById('stats-span-badge');
+
+    const statTotalMessages = document.getElementById('stat-total-messages');
+    const statSmsMmsSub = document.getElementById('stat-sms-mms-sub');
+    const statSentRecv = document.getElementById('stat-sent-recv');
+    const statSentBar = document.getElementById('stat-sent-bar');
+    const statRecvBar = document.getElementById('stat-recv-bar');
+    const statSentPct = document.getElementById('stat-sent-pct');
+    const statRecvPct = document.getElementById('stat-recv-pct');
+    const statTotalMedia = document.getElementById('stat-total-media');
+    const statSpanYears = document.getElementById('stat-span-years');
+    const statSpanDates = document.getElementById('stat-span-dates');
+    const chartTimelineRange = document.getElementById('chart-timeline-range');
+    const topContactsTbody = document.getElementById('top-contacts-tbody');
+
+    if (btnStatsToggle) {
+      btnStatsToggle.onclick = () => toggleStatsView();
+    }
+    if (btnStatsMenu) {
+      btnStatsMenu.onclick = () => {
+        if (document.activeElement) document.activeElement.blur();
+        openStatsView();
+      };
+    }
+    if (btnCloseStats) {
+      btnCloseStats.onclick = () => closeStatsView();
+    }
+    if (btnRefreshStats) {
+      btnRefreshStats.onclick = () => loadStatsData(true);
+    }
+
+    function setContactTab(tab) {
+      if (currentContactTab === tab) return;
+      currentContactTab = tab;
+      if (tabKnown) tabKnown.classList.toggle('tab-active', tab === 'known');
+      if (tabUnknown) tabUnknown.classList.toggle('tab-active', tab === 'unknown');
+      loadContacts(false);
+    }
+    if (tabKnown) tabKnown.onclick = () => setContactTab('known');
+    if (tabUnknown) tabUnknown.onclick = () => setContactTab('unknown');
+
+    // Dual-pane / Responsive View Management (like WhatsApp Web)
+    function openChatView() {
+      if (window.innerWidth < 768) {
+        sidebar.classList.add('hidden');
+        mainChat.classList.remove('hidden');
+      } else {
+        sidebar.classList.remove('hidden');
+        mainChat.classList.remove('hidden');
+      }
+    }
+
+    function openListView() {
+      if (isStatsOpen) closeStatsView();
+      if (isGalleryOpen) closeGalleryView();
+      sidebar.classList.remove('hidden');
+      if (window.innerWidth < 768) {
+        mainChat.classList.add('hidden');
+      }
+      if (chatDatePill) chatDatePill.classList.add('hidden');
+    }
+
+    // Gallery & Lightbox Management
+    async function fetchConversationMedia(address, append = false) {
+      if (isFetchingMedia) return;
+      if (!append) {
+        galleryOffset = 0;
+        galleryHasMore = false;
+        conversationMedia = [];
+        conversationMediaTotal = 0;
+      } else {
+        if (!galleryHasMore) return;
+      }
+      isFetchingMedia = true;
+
+      if (append && isGalleryOpen) {
+        renderGalleryLoadingIndicator(true);
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/conversation-media?address=${encodeURIComponent(address)}&limit=${GALLERY_LIMIT}&offset=${galleryOffset}`);
+        const data = await res.json();
+        const incoming = data.media || [];
+        conversationMediaTotal = data.total !== undefined ? data.total : incoming.length;
+        galleryHasMore = !!data.has_more;
+        galleryOffset += incoming.length;
+
+        if (galleryCountBadge) {
+          galleryCountBadge.textContent = Number(conversationMediaTotal).toLocaleString();
+        }
+        if (btnGalleryToggle) {
+          btnGalleryToggle.classList.remove('hidden');
+          if (conversationMediaTotal === 0) {
+            btnGalleryToggle.classList.add('opacity-40');
+            btnGalleryToggle.title = 'No media in this conversation';
+          } else {
+            btnGalleryToggle.classList.remove('opacity-40');
+            btnGalleryToggle.title = `View Media Gallery (${conversationMediaTotal.toLocaleString()} items)`;
+          }
+        }
+
+        if (!append) {
+          conversationMedia = incoming;
+          if (isGalleryOpen) {
+            renderGalleryGrid(false);
+          }
+        } else {
+          const startIndex = conversationMedia.length;
+          conversationMedia = conversationMedia.concat(incoming);
+          if (isGalleryOpen) {
+            renderGalleryGrid(true, incoming, startIndex);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching conversation media:', err);
+      } finally {
+        isFetchingMedia = false;
+        if (isGalleryOpen) {
+          renderGalleryLoadingIndicator(false);
+        }
+      }
+    }
+
+    function renderGalleryLoadingIndicator(show) {
+      let loader = document.getElementById('gallery-loading-more');
+      if (show) {
+        if (!loader && galleryGridContainer) {
+          loader = document.createElement('div');
+          loader.id = 'gallery-loading-more';
+          loader.className = 'py-6 flex justify-center items-center gap-2 text-xs opacity-60';
+          loader.innerHTML = '<span class="loading loading-spinner loading-sm"></span> Loading more media...';
+          galleryGridContainer.appendChild(loader);
+        }
+      } else {
+        if (loader && loader.parentNode) {
+          loader.parentNode.removeChild(loader);
+        }
+      }
+    }
+
+    function toggleGalleryView() {
+      if (isGalleryOpen) {
+        closeGalleryView();
+      } else {
+        openGalleryView();
+      }
+    }
+
+    function openGalleryView() {
+      if (!currentContact) return;
+      isGalleryOpen = true;
+      viewport.classList.add('hidden');
+      bottomBar.classList.add('hidden');
+      if (conversationGalleryView) {
+        conversationGalleryView.classList.remove('hidden');
+        conversationGalleryView.classList.add('flex');
+      }
+      if (chatDatePill) chatDatePill.classList.add('hidden');
+      renderGalleryGrid(false);
+    }
+
+    function closeGalleryView() {
+      isGalleryOpen = false;
+      if (conversationGalleryView) {
+        conversationGalleryView.classList.add('hidden');
+        conversationGalleryView.classList.remove('flex');
+      }
+      viewport.classList.remove('hidden');
+      bottomBar.classList.remove('hidden');
+      updateVisibleDatePill();
+    }
+
+    function createMediaCard(m, idx) {
+      const isVideo = m.media_type && m.media_type.startsWith('video/');
+      const ext = (m.media_type || '').split('/')[1] || 'media';
+      const card = document.createElement('div');
+      card.className = 'group relative aspect-square bg-base-300 rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition-all duration-150 select-none';
+      card.onclick = () => openLightbox(idx);
+      card.innerHTML = `
+        ${isVideo ? `
+          <div class="w-full h-full flex flex-col items-center justify-center bg-neutral/80 text-neutral-content p-2 select-none group-hover:bg-neutral transition-colors">
+            <div class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary mb-1 shadow">
+              <svg class="w-5 h-5 fill-current ml-0.5" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            </div>
+            <span class="text-[11px] font-mono opacity-80 uppercase">${escapeHtml(ext)}</span>
+          </div>
+        ` : `
+          <img src="${API_BASE}/media?id=${m.id}&thumb=1" loading="lazy" class="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105" alt="Media thumbnail">
+        `}
+        <div class="absolute inset-x-0 bottom-0 p-1.5 bg-gradient-to-t from-black/80 via-black/40 to-transparent text-[10px] text-white flex justify-between items-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+          <span>${formatDate(m.date)}</span>
+          <span class="badge badge-xs badge-neutral text-[9px] uppercase tracking-wide">${escapeHtml(ext)}</span>
+        </div>
+      `;
+      return card;
+    }
+
+    function renderGalleryGrid(append = false, newItems = [], startIndex = 0) {
+      if (!galleryGridContainer) return;
+
+      if (galleryStatsLabel) {
+        if (conversationMedia.length < conversationMediaTotal) {
+          galleryStatsLabel.textContent = `Showing ${conversationMedia.length.toLocaleString()} of ${conversationMediaTotal.toLocaleString()}`;
+        } else {
+          galleryStatsLabel.textContent = `${conversationMediaTotal.toLocaleString()} items`;
+        }
+      }
+
+      if (!append) {
+        if (conversationMedia.length === 0) {
+          galleryGridContainer.innerHTML = `
+            <div class="hero h-64">
+              <div class="hero-content text-center opacity-50">
+                <div>
+                  <svg class="w-12 h-12 mx-auto mb-2 fill-current opacity-40" viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+                  <p>No photos or media found in this conversation.</p>
+                </div>
+              </div>
+            </div>
+          `;
+          return;
+        }
+
+        galleryGridContainer.innerHTML = '<div id="gallery-cards-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5"></div>';
+        const gridEl = document.getElementById('gallery-cards-grid');
+        conversationMedia.forEach((m, idx) => {
+          gridEl.appendChild(createMediaCard(m, idx));
+        });
+      } else {
+        const gridEl = document.getElementById('gallery-cards-grid');
+        if (gridEl) {
+          newItems.forEach((m, offsetIdx) => {
+            gridEl.appendChild(createMediaCard(m, startIndex + offsetIdx));
+          });
+        }
+      }
+    }
+
+    // Infinite scroll for gallery grid
+    if (galleryGridContainer) {
+      galleryGridContainer.addEventListener('scroll', () => {
+        if (!isGalleryOpen || !galleryHasMore || isFetchingMedia || !currentContact) return;
+        const nearBottom = galleryGridContainer.scrollTop + galleryGridContainer.clientHeight >= galleryGridContainer.scrollHeight - 200;
+        if (nearBottom) {
+          fetchConversationMedia(currentContact.address, true);
+        }
+      });
+    }
+
+    function openLightbox(index) {
+      if (!conversationMedia || conversationMedia.length === 0) return;
+      if (index < 0) index = conversationMedia.length - 1;
+      if (index >= conversationMedia.length) {
+        if (galleryHasMore && !isFetchingMedia && currentContact) {
+          fetchConversationMedia(currentContact.address, true).then(() => {
+            if (index < conversationMedia.length) openLightbox(index);
+          });
+          return;
+        }
+        index = 0;
+      }
+      currentLightboxIndex = index;
+
+      // Pre-fetch next page if near end of currently loaded batch
+      if (currentLightboxIndex >= conversationMedia.length - 6 && galleryHasMore && !isFetchingMedia && currentContact) {
+        fetchConversationMedia(currentContact.address, true);
+      }
+
+      const item = conversationMedia[index];
+      if (!item) return;
+
+      if (lightboxCounter) {
+        lightboxCounter.textContent = `${index + 1} / ${conversationMediaTotal || conversationMedia.length}`;
+      }
+      if (lightboxDate) {
+        lightboxDate.textContent = `${formatDate(item.date)} ${formatTime(item.date)}`;
+      }
+      if (btnLightboxDownload) {
+        btnLightboxDownload.href = `${API_BASE}/media?id=${item.id}`;
+      }
+
+      if (lightboxCaption) {
+        if (item.body && item.body.trim()) {
+          lightboxCaption.textContent = item.body.trim();
+          lightboxCaption.classList.remove('hidden');
+        } else {
+          lightboxCaption.textContent = '';
+          lightboxCaption.classList.add('hidden');
+        }
+      }
+
+      const isVideo = item.media_type && item.media_type.startsWith('video/');
+      if (isVideo) {
+        lightboxMediaContainer.innerHTML = `
+          <video src="${API_BASE}/media?id=${item.id}" controls autoplay class="max-h-full max-w-full object-contain rounded shadow-2xl"></video>
+        `;
+      } else {
+        lightboxMediaContainer.innerHTML = `
+          <img src="${API_BASE}/media?id=${item.id}" class="max-h-full max-w-full object-contain rounded shadow-2xl transition-all" alt="Full size media">
+        `;
+      }
+
+      if (modalLightbox && !modalLightbox.open) {
+        modalLightbox.showModal();
+      }
+    }
+
+    function lightboxPrev() {
+      if (conversationMedia.length <= 1) return;
+      openLightbox(currentLightboxIndex - 1);
+    }
+
+    function lightboxNext() {
+      if (conversationMedia.length <= 1) return;
+      openLightbox(currentLightboxIndex + 1);
+    }
+
+    function openLightboxForMessageId(msgId) {
+      const idx = conversationMedia.findIndex(m => m.id === msgId);
+      if (idx !== -1) {
+        openLightbox(idx);
+      } else {
+        conversationMedia = [{ id: msgId, date: 0, media_type: 'image/jpeg' }];
+        openLightbox(0);
+      }
+    }
+
+    // Archive Statistics Dashboard Logic
+    function toggleStatsView() {
+      if (isStatsOpen) {
+        closeStatsView();
+      } else {
+        openStatsView();
+      }
+    }
+
+    function openStatsView() {
+      if (isGalleryOpen) closeGalleryView();
+      isStatsOpen = true;
+
+      if (btnStatsToggle) {
+        btnStatsToggle.classList.add('btn-active', 'text-primary');
+      }
+
+      // Update Top Chat Header to Archive Telemetry
+      if (chatTitle) chatTitle.textContent = 'Archive Telemetry';
+      if (statsData && statsData.summary) {
+        const s = statsData.summary;
+        if (chatSub) chatSub.textContent = `${(s.total_messages || 0).toLocaleString()} messages · ${s.span_years || 0} years across all contacts`;
+        if (statsSpanBadge && s.first_date && s.last_date) {
+          const d1 = new Date(s.first_date * 1000);
+          const d2 = new Date(s.last_date * 1000);
+          statsSpanBadge.textContent = `${d1.getFullYear()} – ${d2.getFullYear()}`;
+          statsSpanBadge.classList.remove('hidden');
+        }
+      } else {
+        if (chatSub) chatSub.textContent = 'Lifetime statistics across all contacts';
+        if (statsSpanBadge) statsSpanBadge.classList.add('hidden');
+      }
+
+      // Switch header action controls
+      if (btnGalleryToggle) btnGalleryToggle.classList.add('hidden');
+      const statsHeaderActions = document.getElementById('stats-header-actions');
+      if (statsHeaderActions) statsHeaderActions.classList.remove('hidden');
+
+      viewport.classList.add('hidden');
+      bottomBar.classList.add('hidden');
+      if (chatDatePill) chatDatePill.classList.add('hidden');
+
+      if (statsDashboardView) {
+        statsDashboardView.classList.remove('hidden');
+        statsDashboardView.classList.add('flex');
+      }
+
+      openChatView();
+
+      if (!statsData) {
+        loadStatsData();
+      } else {
+        renderStatsData(statsData);
+      }
+    }
+
+    function closeStatsView() {
+      isStatsOpen = false;
+
+      if (btnStatsToggle) {
+        btnStatsToggle.classList.remove('btn-active', 'text-primary');
+      }
+
+      const statsHeaderActions = document.getElementById('stats-header-actions');
+      if (statsHeaderActions) statsHeaderActions.classList.add('hidden');
+      if (statsSpanBadge) statsSpanBadge.classList.add('hidden');
+
+      if (statsDashboardView) {
+        statsDashboardView.classList.add('hidden');
+        statsDashboardView.classList.remove('flex');
+      }
+
+      if (currentContact) {
+        if (chatTitle) chatTitle.textContent = currentContact.name;
+        if (chatSub) chatSub.textContent = `${currentContact.address} · ${Number(currentContact.count || 0).toLocaleString()} texts`;
+        if (btnGalleryToggle && conversationMediaTotal > 0) btnGalleryToggle.classList.remove('hidden');
+        viewport.classList.remove('hidden');
+        bottomBar.classList.remove('hidden');
+        updateVisibleDatePill();
+      } else {
+        if (chatTitle) chatTitle.textContent = 'Select a Conversation';
+        if (chatSub) chatSub.textContent = 'SMS Archive';
+        if (btnGalleryToggle) btnGalleryToggle.classList.add('hidden');
+        if (window.innerWidth < 768) {
+          openListView();
+        } else {
+          viewport.classList.remove('hidden');
+        }
+      }
+    }
+
+    async function loadStatsData(forceRefresh = false) {
+      if (!statsDashboardView) return;
+
+      if (statsLoading) {
+        statsLoading.innerHTML = `
+          <div class="hero-content text-center opacity-60">
+            <div class="flex flex-col items-center gap-3">
+              <span class="loading loading-spinner loading-lg text-primary"></span>
+              <p class="text-sm font-medium">Aggregating lifetime archive telemetry...</p>
+            </div>
+          </div>
+        `;
+        statsLoading.classList.remove('hidden');
+      }
+      if (statsCardsContainer) statsCardsContainer.classList.add('hidden');
+
+      const refreshIcon = btnRefreshStats?.querySelector('svg');
+      if (refreshIcon) refreshIcon.classList.add('animate-spin');
+
+      try {
+        const url = forceRefresh ? `${API_BASE}/analytics?refresh=1` : `${API_BASE}/analytics`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        statsData = data;
+        renderStatsData(data);
+        if (statsLoading) statsLoading.classList.add('hidden');
+        if (statsCardsContainer) statsCardsContainer.classList.remove('hidden');
+      } catch (err) {
+        console.error('Failed to load analytics:', err);
+        if (statsLoading) {
+          statsLoading.innerHTML = `
+            <div class="hero-content text-center text-error">
+              <div>
+                <svg class="w-12 h-12 mx-auto mb-2 fill-current opacity-60" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                <p class="font-bold">Failed to load archive telemetry</p>
+                <p class="text-xs opacity-70 mt-1">${escapeHtml(err.message)}</p>
+                <button type="button" class="btn btn-xs btn-outline btn-error mt-3" onclick="loadStatsData(true)">Retry</button>
+              </div>
+            </div>
+          `;
+          statsLoading.classList.remove('hidden');
+        }
+      } finally {
+        if (refreshIcon) refreshIcon.classList.remove('animate-spin');
+      }
+    }
+
+    function formatYmLabel(ym) {
+      if (!ym || typeof ym !== 'string') return ym || '';
+      const parts = ym.split('-');
+      if (parts.length < 2) return ym;
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const mIdx = parseInt(parts[1], 10) - 1;
+      const monthStr = monthNames[mIdx] || parts[1];
+      const yearStr = parts[0].length === 4 ? `'${parts[0].slice(2)}` : parts[0];
+      return `${monthStr} ${yearStr}`;
+    }
+
+    function renderTimelineChart(timeline) {
+      if (typeof Chart === 'undefined') return;
+      const canvas = document.getElementById('chart-timeline');
+      if (!canvas) return;
+
+      if (timelineChartInstance) {
+        timelineChartInstance.destroy();
+        timelineChartInstance = null;
+      }
+
+      const labels = timeline.map(t => formatYmLabel(t.date));
+      const sentData = timeline.map(t => t.sent || 0);
+      const recvData = timeline.map(t => t.received || 0);
+
+      const ctx = canvas.getContext('2d');
+      timelineChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Sent',
+              data: sentData,
+              borderColor: '#3b82f6',
+              backgroundColor: 'rgba(59, 130, 246, 0.35)',
+              fill: true,
+              tension: 0.3,
+              pointRadius: timeline.length > 50 ? 0 : 2,
+              pointHoverRadius: 5,
+              borderWidth: 2
+            },
+            {
+              label: 'Received',
+              data: recvData,
+              borderColor: '#a855f7',
+              backgroundColor: 'rgba(168, 85, 247, 0.35)',
+              fill: true,
+              tension: 0.3,
+              pointRadius: timeline.length > 50 ? 0 : 2,
+              pointHoverRadius: 5,
+              borderWidth: 2
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            mode: 'index',
+            intersect: false
+          },
+          plugins: {
+            legend: {
+              position: 'top',
+              align: 'end',
+              labels: {
+                boxWidth: 10,
+                boxHeight: 10,
+                color: '#a6adba',
+                font: { size: 11, weight: '600' }
+              }
+            },
+            tooltip: {
+              backgroundColor: '#191e24',
+              titleColor: '#e5e6e6',
+              bodyColor: '#a6adba',
+              borderColor: 'rgba(255, 255, 255, 0.1)',
+              borderWidth: 1,
+              padding: 10,
+              cornerRadius: 8,
+              callbacks: {
+                footer: (items) => {
+                  let total = 0;
+                  items.forEach(i => { total += i.parsed.y; });
+                  return `Total: ${total.toLocaleString()}`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              ticks: {
+                color: '#a6adba',
+                maxRotation: 0,
+                autoSkip: true,
+                maxTicksLimit: 12,
+                font: { size: 10 }
+              }
+            },
+            y: {
+              stacked: true,
+              grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              ticks: {
+                color: '#a6adba',
+                font: { size: 10 },
+                callback: (v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function renderHourlyChart(hourly) {
+      if (typeof Chart === 'undefined') return;
+      const canvas = document.getElementById('chart-hourly');
+      if (!canvas) return;
+
+      if (hourlyChartInstance) {
+        hourlyChartInstance.destroy();
+        hourlyChartInstance = null;
+      }
+
+      const labels = [
+        '12a', '1a', '2a', '3a', '4a', '5a', '6a', '7a', '8a', '9a', '10a', '11a',
+        '12p', '1p', '2p', '3p', '4p', '5p', '6p', '7p', '8p', '9p', '10p', '11p'
+      ];
+
+      const ctx = canvas.getContext('2d');
+      hourlyChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Messages',
+              data: hourly,
+              backgroundColor: 'rgba(59, 130, 246, 0.75)',
+              hoverBackgroundColor: '#3b82f6',
+              borderRadius: 4,
+              borderSkipped: false
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#191e24',
+              titleColor: '#e5e6e6',
+              bodyColor: '#a6adba',
+              borderColor: 'rgba(255, 255, 255, 0.1)',
+              borderWidth: 1,
+              padding: 10,
+              cornerRadius: 8,
+              callbacks: {
+                title: (items) => {
+                  const h = items[0].dataIndex;
+                  const hStr = h === 0 ? '12:00 AM' : h < 12 ? `${h}:00 AM` : h === 12 ? '12:00 PM' : `${h - 12}:00 PM`;
+                  const nextH = (h + 1) % 24;
+                  const nextStr = nextH === 0 ? '12:00 AM' : nextH < 12 ? `${nextH}:00 AM` : nextH === 12 ? '12:00 PM' : `${nextH - 12}:00 PM`;
+                  return `${hStr} – ${nextStr}`;
+                },
+                label: (item) => `${item.parsed.y.toLocaleString()} messages`
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: {
+                color: '#a6adba',
+                font: { size: 10 }
+              }
+            },
+            y: {
+              grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              ticks: {
+                color: '#a6adba',
+                font: { size: 10 },
+                callback: (v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function renderTopContacts(topContacts) {
+      if (!topContactsTbody) return;
+      topContactsTbody.innerHTML = '';
+      if (!topContacts || topContacts.length === 0) {
+        topContactsTbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 opacity-50">No contact activity recorded</td></tr>';
+        return;
+      }
+
+      topContacts.forEach((c, idx) => {
+        const rank = idx + 1;
+        const total = c.total || 0;
+        const sent = c.sent || 0;
+        const recv = c.received || 0;
+        const sPct = total > 0 ? Math.round((sent / total) * 100) : 50;
+        const rPct = 100 - sPct;
+
+        let badgeClass = 'text-xs font-mono opacity-60';
+        if (rank === 1) badgeClass = 'badge badge-sm badge-warning font-bold';
+        else if (rank === 2) badgeClass = 'badge badge-sm badge-neutral font-bold';
+        else if (rank === 3) badgeClass = 'badge badge-sm badge-accent font-bold';
+
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-base-300/60 cursor-pointer transition-colors select-none';
+        tr.title = `Click to open chat with ${escapeHtml(c.name)}`;
+        tr.innerHTML = `
+          <td class="text-center font-bold">
+            <span class="${badgeClass}">${rank}</span>
+          </td>
+          <td>
+            <div class="flex items-center gap-2.5">
+              <div class="avatar placeholder flex-shrink-0">
+                <div class="bg-neutral text-neutral-content rounded-full w-8 h-8 flex items-center justify-center font-bold text-xs">
+                  <span>${getInitials(c.name)}</span>
+                </div>
+              </div>
+              <div class="min-w-0">
+                <div class="font-bold text-sm truncate max-w-[180px] sm:max-w-xs">${escapeHtml(c.name)}</div>
+                <div class="text-[11px] opacity-60 truncate max-w-[180px] sm:max-w-xs">${escapeHtml(c.address)}</div>
+              </div>
+            </div>
+          </td>
+          <td class="text-right font-mono font-bold text-sm">
+            ${total.toLocaleString()}
+          </td>
+          <td>
+            <div class="flex flex-col gap-1 items-center justify-center">
+              <div class="w-full bg-base-300 h-2 rounded-full overflow-hidden flex">
+                <div class="bg-primary h-full" style="width: ${sPct}%" title="${sPct}% Sent (${sent.toLocaleString()})"></div>
+                <div class="bg-secondary h-full" style="width: ${rPct}%" title="${rPct}% Received (${recv.toLocaleString()})"></div>
+              </div>
+              <div class="flex justify-between w-full text-[10px] opacity-70 px-0.5">
+                <span class="text-primary font-medium">${sPct}% S</span>
+                <span class="text-secondary font-medium">${rPct}% R</span>
+              </div>
+            </div>
+          </td>
+        `;
+        tr.onclick = () => {
+          closeStatsView();
+          selectContact({ address: c.address, name: c.name, count: total });
+        };
+        topContactsTbody.appendChild(tr);
+      });
+    }
+
+    function renderStatsData(data) {
+      if (!data || !data.summary) return;
+
+      const s = data.summary;
+      if (isStatsOpen) {
+        if (chatTitle) chatTitle.textContent = 'Archive Telemetry';
+        if (chatSub) chatSub.textContent = `${(s.total_messages || 0).toLocaleString()} messages · ${s.span_years || 0} years across all contacts`;
+      }
+
+      if (statTotalMessages) statTotalMessages.textContent = (s.total_messages || 0).toLocaleString();
+      if (statSmsMmsSub) statSmsMmsSub.textContent = `${(s.sms_count || 0).toLocaleString()} SMS · ${(s.mms_count || 0).toLocaleString()} MMS`;
+
+      const totalSentRecv = (s.sent || 0) + (s.received || 0);
+      const sentPct = totalSentRecv > 0 ? Math.round(((s.sent || 0) / totalSentRecv) * 100) : 50;
+      const recvPct = 100 - sentPct;
+
+      if (statSentRecv) statSentRecv.textContent = `${(s.sent || 0).toLocaleString()} / ${(s.received || 0).toLocaleString()}`;
+      if (statSentBar) statSentBar.style.width = `${sentPct}%`;
+      if (statRecvBar) statRecvBar.style.width = `${recvPct}%`;
+      if (statSentPct) statSentPct.textContent = `${sentPct}% Sent`;
+      if (statRecvPct) statRecvPct.textContent = `${recvPct}% Received`;
+
+      if (statTotalMedia) statTotalMedia.textContent = (s.media_count || 0).toLocaleString();
+      if (statSpanYears) statSpanYears.textContent = `${s.span_years || 0} Years`;
+
+      if (s.first_date && s.last_date) {
+        const d1 = new Date(s.first_date * 1000);
+        const d2 = new Date(s.last_date * 1000);
+        const f1 = d1.toLocaleDateString([], { month: 'short', year: 'numeric' });
+        const f2 = d2.toLocaleDateString([], { month: 'short', year: 'numeric' });
+        if (statSpanDates) statSpanDates.textContent = `${f1} – ${f2}`;
+        if (statsSpanBadge) {
+          statsSpanBadge.textContent = `${d1.getFullYear()} – ${d2.getFullYear()}`;
+          if (isStatsOpen) statsSpanBadge.classList.remove('hidden');
+        }
+        if (chartTimelineRange) {
+          chartTimelineRange.textContent = `${d1.getFullYear()} – ${d2.getFullYear()}`;
+        }
+      }
+
+      if (data.timeline) {
+        renderTimelineChart(data.timeline);
+      }
+      if (data.hourly) {
+        renderHourlyChart(data.hourly);
+      }
+      if (data.top_contacts) {
+        renderTopContacts(data.top_contacts);
+      }
+    }
+
+    // Formatters
+    function formatDate(ts) {
+      if (!ts) return '';
+      const d = new Date(ts * 1000);
+      const now = new Date();
+      if (d.toDateString() === now.toDateString()) {
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      }
+      if (d.getFullYear() === now.getFullYear()) {
+        return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+      }
+      return d.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
+    function formatTime(ts) {
+      if (!ts) return '';
+      return new Date(ts * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function getInitials(name) {
+      if (!name) return '?';
+      const clean = name.replace(/[^a-zA-Z0-9\s]/g, '').trim();
+      const parts = clean.split(/\s+/);
+      if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+      return clean.slice(0, 2).toUpperCase() || '?';
+    }
+
+    function escapeHtml(str) {
+      return (str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function formatSnippet(snippet) {
+      if (!snippet) return '';
+      const tokenStart = '___MARK_START___';
+      const tokenEnd = '___MARK_END___';
+      let safe = snippet
+        .replace(/<mark class="[^"]*">/gi, tokenStart)
+        .replace(/<\/mark>/gi, tokenEnd);
+      safe = escapeHtml(safe);
+      return safe
+        .replace(new RegExp(tokenStart, 'g'), '<mark class="bg-warning text-warning-content rounded px-0.5">')
+        .replace(new RegExp(tokenEnd, 'g'), '</mark>');
+    }
+
+    // Cache for client-side contact prefix filtering
+    let allContactsCache = [];
+
+    // Load Normal Contacts (Paged)
+    async function loadContacts(append = false) {
+      if (isFetchingContacts || isSearchMode) return;
+      isFetchingContacts = true;
+
+      if (!append) {
+        contactsOffset = 0;
+        contactsListEl.innerHTML = '<div class="p-4 text-center opacity-50 text-sm">Loading contacts...</div>';
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/contacts?tab=${currentContactTab}&limit=${CONTACTS_LIMIT}&offset=${contactsOffset}`);
+        const data = await res.json();
+        
+        const list = Array.isArray(data) ? data : (data.contacts || []);
+        contactsHasMore = Array.isArray(data) ? false : !!data.has_more;
+        contactsOffset += list.length;
+
+        if (data.known_count !== undefined && badgeKnownCount) {
+          badgeKnownCount.textContent = Number(data.known_count).toLocaleString();
+        }
+        if (data.unknown_count !== undefined && badgeUnknownCount) {
+          badgeUnknownCount.textContent = Number(data.unknown_count).toLocaleString();
+        }
+
+        if (!append) allContactsCache = list;
+        else allContactsCache = allContactsCache.concat(list);
+
+        renderContacts(list, append);
+
+        // Fetch full contact list in background for instant prefix search
+        if (!append) {
+          fetch(`${API_BASE}/contacts?limit=0`).then(r => r.json()).then(full => {
+            const all = Array.isArray(full) ? full : (full.contacts || []);
+            if (all.length > 0) {
+              allContactsCache = all;
+              if (full.known_count !== undefined && badgeKnownCount) {
+                badgeKnownCount.textContent = Number(full.known_count).toLocaleString();
+              }
+              if (full.unknown_count !== undefined && badgeUnknownCount) {
+                badgeUnknownCount.textContent = Number(full.unknown_count).toLocaleString();
+              }
+            }
+          }).catch(() => {});
+        }
+      } catch (err) {
+        if (!append) {
+          contactsListEl.innerHTML = `<div class="p-4 text-error text-center text-sm">Error loading contacts: ${err.message}</div>`;
+        }
+      } finally {
+        isFetchingContacts = false;
+      }
+    }
+
+    function renderContacts(contacts, append = false) {
+      if (!append) {
+        contactsListEl.innerHTML = '';
+      }
+      if (!append && contacts.length === 0) {
+        contactsListEl.innerHTML = '<div class="p-4 opacity-50 text-center text-sm">No contacts found</div>';
+        return;
+      }
+
+      contacts.forEach(c => {
+        const isActive = currentContact && currentContact.address === c.address;
+        const item = document.createElement('div');
+        item.className = `contact-item flex items-center gap-3 p-3 cursor-pointer hover:bg-base-300 transition-colors select-none ${isActive ? 'bg-base-300' : ''}`;
+        item.innerHTML = `
+          <div class="avatar placeholder flex-shrink-0">
+            <div class="bg-neutral text-neutral-content rounded-full w-9 h-9 flex items-center justify-center font-bold text-xs">
+              <span>${getInitials(c.name)}</span>
+            </div>
+          </div>
+          <div class="flex-1 min-w-0 overflow-hidden">
+            <div class="flex justify-between items-baseline gap-2">
+              <span class="font-semibold text-sm truncate text-base-content">${escapeHtml(c.name)}</span>
+              <span class="text-xs opacity-50 flex-shrink-0">${formatDate(c.last_date)}</span>
+            </div>
+            <div class="flex justify-between items-center gap-2 opacity-70 mt-0.5">
+              <span class="text-xs truncate">${escapeHtml(c.address)}</span>
+              <span class="badge badge-sm badge-ghost flex-shrink-0">${Number(c.count).toLocaleString()}</span>
+            </div>
+          </div>
+        `;
+        item.onclick = () => selectContact(c);
+        contactsListEl.appendChild(item);
+      });
+    }
+
+    // Scroll listener: handles infinite scroll for contacts AND message search results
+    contactsListEl.addEventListener('scroll', () => {
+      const nearBottom = contactsListEl.scrollTop + contactsListEl.clientHeight >= contactsListEl.scrollHeight - 80;
+      if (!nearBottom) return;
+
+      if (!isSearchMode) {
+        if (contactsHasMore && !isFetchingContacts) {
+          loadContacts(true);
+        }
+      } else {
+        if (searchMessagesHasMore && !isFetchingMoreSearch) {
+          loadMoreSearchMessages();
+        }
+      }
+    });
+
+    function updateSearchControls() {
+      const hasValue = !!(searchInput && searchInput.value.length > 0);
+      if (btnClearSearch) {
+        if (hasValue) btnClearSearch.classList.remove('hidden');
+        else btnClearSearch.classList.add('hidden');
+      }
+      if (searchKbdHint) {
+        if (hasValue) searchKbdHint.classList.add('!hidden');
+        else searchKbdHint.classList.remove('!hidden');
+      }
+    }
+
+    // Pure Prefix Search across Contacts & Messages
+    async function executeGlobalSearch(q) {
+      updateSearchControls();
+      if (!q) {
+        isSearchMode = false;
+        if (contactTabsContainer) contactTabsContainer.classList.remove('hidden');
+        loadContacts();
+        return;
+      }
+
+      isSearchMode = true;
+      currentSearchQuery = q;
+      searchMessagesOffset = 0;
+      if (contactTabsContainer) contactTabsContainer.classList.add('hidden');
+      contactsListEl.innerHTML = '<div class="p-4 text-center opacity-50 text-sm">Searching...</div>';
+
+      try {
+        // 1. Prefix match contacts in-memory (no arbitrary limit)
+        const qLower = q.toLowerCase();
+        const matchingContacts = allContactsCache.filter(c => {
+          const nameLower = (c.name || '').toLowerCase();
+          const words = nameLower.split(/\s+/);
+          return words.some(w => w.startsWith(qLower)) || (c.address || '').includes(q);
+        });
+
+        // 2. Prefix search messages via SQLite FTS5
+        const res = await fetch(`${API_BASE}/search?q=${encodeURIComponent(q)}&limit=${SEARCH_MESSAGES_LIMIT}&offset=0`);
+        const data = await res.json();
+        const matchingMessages = data.results || [];
+        searchMessagesOffset = matchingMessages.length;
+        searchMessagesHasMore = !!data.has_more;
+
+        // 3. Mix contacts and messages together chronologically (most recent first)
+        const unified = [];
+
+        matchingContacts.forEach(c => {
+          unified.push({
+            type: 'contact',
+            id: c.address,
+            address: c.address,
+            name: c.name,
+            count: c.count,
+            date: c.last_date || 0
+          });
+        });
+
+        matchingMessages.forEach(m => {
+          unified.push({
+            type: 'message',
+            id: m.id,
+            address: m.address,
+            name: m.contact_name,
+            date: m.date || 0,
+            msgType: m.type, // 1 = received, 2 = sent
+            snippet: m.snippet || m.body
+          });
+        });
+
+        // Interleave together by date
+        unified.sort((a, b) => (b.date || 0) - (a.date || 0));
+
+        renderSearchResults(unified, q);
+      } catch (err) {
+        contactsListEl.innerHTML = `<div class="p-4 text-error text-center text-sm">Search error: ${err.message}</div>`;
+      }
+    }
+
+    function renderSearchResults(items, q) {
+      if (items.length === 0) {
+        contactsListEl.innerHTML = `<div class="p-6 text-center opacity-50 text-sm">No contacts or messages matching "${escapeHtml(q)}"</div>`;
+        return;
+      }
+
+      contactsListEl.innerHTML = '';
+      const feedContainer = document.createElement('div');
+      feedContainer.id = 'search-feed-container';
+      feedContainer.className = 'divide-y divide-base-300';
+
+      items.forEach(item => {
+        const el = document.createElement('div');
+        if (item.type === 'contact') {
+          el.className = 'contact-item flex items-center gap-3 p-3 cursor-pointer hover:bg-base-300 transition-colors select-none';
+          el.innerHTML = `
+            <div class="avatar placeholder flex-shrink-0">
+              <div class="bg-primary/20 text-primary border border-primary/30 rounded-full w-9 h-9 flex items-center justify-center font-bold text-xs">
+                <span>${getInitials(item.name)}</span>
+              </div>
+            </div>
+            <div class="flex-1 min-w-0 overflow-hidden">
+              <div class="flex justify-between items-baseline gap-2">
+                <span class="font-semibold text-sm truncate text-base-content">${escapeHtml(item.name)}</span>
+                <span class="badge badge-xs badge-primary font-medium">Contact</span>
+              </div>
+              <div class="flex justify-between items-center gap-2 opacity-70 mt-0.5">
+                <span class="text-xs truncate">${escapeHtml(item.address)}</span>
+                <span class="text-[11px] opacity-50">${Number(item.count).toLocaleString()} texts</span>
+              </div>
+            </div>
+          `;
+          el.onclick = () => selectContact(item);
+        } else {
+          const isSent = item.msgType === 2;
+          el.id = `search-msg-${item.id}`;
+          el.className = 'search-msg-item flex items-start gap-3 p-3 cursor-pointer hover:bg-base-300 transition-colors select-none overflow-hidden';
+          el.innerHTML = `
+            <div class="avatar placeholder flex-shrink-0 mt-0.5">
+              <div class="bg-neutral text-neutral-content rounded-full w-9 h-9 flex items-center justify-center font-bold text-xs">
+                <span>${getInitials(item.name)}</span>
+              </div>
+            </div>
+            <div class="flex-1 min-w-0 overflow-hidden">
+              <div class="flex justify-between items-baseline gap-2">
+                <div class="flex items-center gap-1.5 min-w-0">
+                  <span class="font-semibold text-sm truncate text-base-content">${escapeHtml(item.name)}</span>
+                  <span class="badge badge-xs ${isSent ? 'badge-primary' : 'badge-neutral'} font-medium flex-shrink-0">${isSent ? 'Sent' : 'Received'}</span>
+                </div>
+                <span class="text-[11px] opacity-50 flex-shrink-0">${formatDate(item.date)}</span>
+              </div>
+              <div class="text-xs opacity-80 line-clamp-2 leading-relaxed mt-1">${formatSnippet(item.snippet || '')}</div>
+            </div>
+          `;
+          el.onclick = () => jumpToGlobalMessage(item.id, item.address, item.name);
+        }
+        feedContainer.appendChild(el);
+      });
+
+      contactsListEl.appendChild(feedContainer);
+    }
+
+    // Fetch next page of message search results
+    async function loadMoreSearchMessages() {
+      if (isFetchingMoreSearch || !searchMessagesHasMore) return;
+      isFetchingMoreSearch = true;
+
+      const container = document.getElementById('search-feed-container') || contactsListEl;
+      const loader = document.createElement('div');
+      loader.id = 'search-loading-more';
+      loader.className = 'p-3 text-center opacity-50 text-xs flex justify-center items-center gap-2';
+      loader.innerHTML = '<span class="loading loading-spinner loading-xs"></span> Loading more messages...';
+      container.appendChild(loader);
+
+      try {
+        const res = await fetch(`${API_BASE}/search?q=${encodeURIComponent(currentSearchQuery)}&limit=${SEARCH_MESSAGES_LIMIT}&offset=${searchMessagesOffset}`);
+        const data = await res.json();
+        const newMsgs = data.results || [];
+        searchMessagesOffset += newMsgs.length;
+        searchMessagesHasMore = !!data.has_more;
+
+        if (loader.parentNode) loader.parentNode.removeChild(loader);
+        appendSearchMessages(newMsgs);
+      } catch (err) {
+        if (loader.parentNode) loader.parentNode.removeChild(loader);
+        console.error('Error loading more search messages:', err);
+      } finally {
+        isFetchingMoreSearch = false;
+      }
+    }
+
+    function appendSearchMessages(msgs) {
+      const container = document.getElementById('search-feed-container') || contactsListEl;
+
+      msgs.forEach(m => {
+        const isSent = m.type === 2;
+        const item = document.createElement('div');
+        item.id = `search-msg-${m.id}`;
+        item.className = 'search-msg-item flex items-start gap-3 p-3 cursor-pointer hover:bg-base-300 transition-colors select-none overflow-hidden';
+        item.innerHTML = `
+          <div class="avatar placeholder flex-shrink-0 mt-0.5">
+            <div class="bg-neutral text-neutral-content rounded-full w-9 h-9 flex items-center justify-center font-bold text-xs">
+              <span>${getInitials(m.contact_name)}</span>
+            </div>
+          </div>
+          <div class="flex-1 min-w-0 overflow-hidden">
+            <div class="flex justify-between items-baseline gap-2">
+              <div class="flex items-center gap-1.5 min-w-0">
+                <span class="font-semibold text-sm truncate text-base-content">${escapeHtml(m.contact_name)}</span>
+                <span class="badge badge-xs ${isSent ? 'badge-primary' : 'badge-neutral'} font-medium flex-shrink-0">${isSent ? 'Sent' : 'Received'}</span>
+              </div>
+              <span class="text-[11px] opacity-50 flex-shrink-0">${formatDate(m.date)}</span>
+            </div>
+            <div class="text-xs opacity-80 line-clamp-2 leading-relaxed mt-1">${formatSnippet(m.snippet || m.body || '')}</div>
+          </div>
+        `;
+        item.onclick = () => jumpToGlobalMessage(m.id, m.address, m.contact_name);
+        container.appendChild(item);
+      });
+    }
+
+    // Select Contact
+    async function selectContact(contact) {
+      if (isStatsOpen) closeStatsView();
+      if (isGalleryOpen) closeGalleryView();
+      currentContact = contact;
+      document.querySelectorAll('.contact-item, .search-msg-item').forEach(el => el.classList.remove('bg-base-300'));
+
+      chatTitle.textContent = contact.name;
+      chatSub.textContent = `${contact.address} · ${Number(contact.count || 0).toLocaleString()} texts`;
+      if (statsSpanBadge) statsSpanBadge.classList.add('hidden');
+      bottomBar.classList.remove('hidden');
+
+      openChatView();
+      fetchConversationMedia(contact.address);
+
+      viewport.innerHTML = `<div class="hero h-full"><div class="hero-content opacity-50">Loading conversation...</div></div>`;
+      if (chatDatePill) chatDatePill.classList.add('hidden');
+      messages = [];
+      hasMoreOlder = true;
+      hasMoreNewer = false;
+
+      try {
+        const res = await fetch(`${API_BASE}/messages?address=${encodeURIComponent(contact.address)}&limit=50`);
+        const data = await res.json();
+        messages = data.messages || [];
+        renderMessages();
+        scrollToBottom();
+      } catch (err) {
+        viewport.innerHTML = `<div class="hero h-full"><div class="hero-content text-error">Error: ${err.message}</div></div>`;
+      }
+    }
+
+    // Jump to Global Message Match
+    async function jumpToGlobalMessage(msgId, address, contactName) {
+      if (isStatsOpen) closeStatsView();
+      if (isGalleryOpen) closeGalleryView();
+      isJumpingToContext = true;
+      currentContact = { address, name: contactName };
+
+      document.querySelectorAll('.contact-item, .search-msg-item').forEach(el => el.classList.remove('bg-base-300'));
+      const activeEl = document.getElementById(`search-msg-${msgId}`);
+      if (activeEl) activeEl.classList.add('bg-base-300');
+
+      chatTitle.textContent = contactName;
+      chatSub.textContent = `${address}`;
+      if (statsSpanBadge) statsSpanBadge.classList.add('hidden');
+      bottomBar.classList.remove('hidden');
+
+      openChatView();
+      fetchConversationMedia(address);
+
+      viewport.innerHTML = `<div class="hero h-full"><div class="hero-content opacity-50">Jumping to message context...</div></div>`;
+      if (chatDatePill) chatDatePill.classList.add('hidden');
+
+      try {
+        const res = await fetch(`${API_BASE}/context?id=${msgId}`);
+        const data = await res.json();
+        messages = data.messages || [];
+        hasMoreOlder = true;
+        hasMoreNewer = true;
+
+        renderMessages();
+
+        // Double-RAF ensures DOM layout & heights are fully painted before scrolling
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            const targetEl = document.getElementById(`msg-${msgId}`);
+            if (targetEl) {
+              const vpRect = viewport.getBoundingClientRect();
+              const targetRect = targetEl.getBoundingClientRect();
+              const offset = (targetRect.top - vpRect.top) - (viewport.clientHeight / 2) + (targetRect.height / 2);
+              viewport.scrollTop += offset;
+
+              const bubble = targetEl.querySelector('.chat-bubble');
+              if (bubble) {
+                bubble.classList.add('chat-bubble-highlight');
+                setTimeout(() => {
+                  bubble.classList.remove('chat-bubble-highlight');
+                }, 2600);
+              }
+            }
+            updateVisibleDatePill();
+            setTimeout(() => {
+              isJumpingToContext = false;
+            }, 600);
+          });
+        });
+      } catch (err) {
+        isJumpingToContext = false;
+        viewport.innerHTML = `<div class="hero h-full"><div class="hero-content text-error">Error jumping to context: ${err.message}</div></div>`;
+      }
+    }
+
+    function renderMessages() {
+      if (messages.length === 0) {
+        viewport.innerHTML = `<div class="hero h-full"><div class="hero-content opacity-50">No messages in this conversation.</div></div>`;
+        loadedCountLabel.textContent = '0 messages';
+        return;
+      }
+
+      loadedCountLabel.textContent = `${messages.length.toLocaleString()} messages loaded`;
+
+      const fragment = document.createDocumentFragment();
+      let lastDateStr = '';
+
+      messages.forEach(m => {
+        const dStr = new Date(m.date * 1000).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+        if (dStr !== lastDateStr) {
+          const sep = document.createElement('div');
+          sep.className = 'divider';
+          sep.textContent = dStr;
+          fragment.appendChild(sep);
+          lastDateStr = dStr;
+        }
+
+        const isOut = m.type === 2;
+        const row = document.createElement('div');
+        row.className = `chat ${isOut ? 'chat-end' : 'chat-start'}`;
+        row.id = `msg-${m.id}`;
+        row.dataset.date = m.date;
+
+        let mediaHtml = '';
+        if (m.media_type) {
+          if (m.media_type.startsWith('image/')) {
+            mediaHtml = `
+              <div class="mb-1 rounded-lg overflow-hidden max-w-xs sm:max-w-sm max-h-72 cursor-pointer bg-base-300/40 select-none" onclick="openLightboxForMessageId(${m.id})">
+                <img src="${API_BASE}/media?id=${m.id}&thumb=1" loading="lazy" class="w-full h-auto max-h-72 object-cover hover:opacity-90 transition-opacity" alt="Image attachment">
+              </div>
+            `;
+          } else if (m.media_type.startsWith('video/')) {
+            mediaHtml = `
+              <div class="mb-1 rounded-lg overflow-hidden max-w-xs sm:max-w-sm max-h-72 bg-base-300/40">
+                <video src="${API_BASE}/media?id=${m.id}" controls preload="metadata" class="w-full h-auto max-h-72 rounded-lg"></video>
+              </div>
+            `;
+          }
+        }
+
+        const bodyText = m.body ? escapeHtml(m.body) : (mediaHtml ? '' : '<span class="opacity-50 italic">(Attachment or empty message)</span>');
+
+        row.innerHTML = `
+          <div class="chat-header">
+            <time class="text-xs opacity-50">${formatTime(m.date)}</time>
+          </div>
+          <div class="chat-bubble ${isOut ? 'chat-bubble-primary' : ''} break-words">
+            ${mediaHtml}
+            ${bodyText ? `<div>${bodyText}</div>` : ''}
+          </div>
+        `;
+        fragment.appendChild(row);
+      });
+
+      viewport.innerHTML = '';
+      viewport.appendChild(fragment);
+      updateVisibleDatePill();
+    }
+
+    function scrollToBottom() {
+      viewport.scrollTop = viewport.scrollHeight;
+      requestAnimationFrame(updateVisibleDatePill);
+    }
+
+    let datePillRaf = null;
+    function requestDatePillUpdate() {
+      if (datePillRaf) return;
+      datePillRaf = requestAnimationFrame(() => {
+        datePillRaf = null;
+        updateVisibleDatePill();
+      });
+    }
+
+    function updateVisibleDatePill() {
+      if (!chatDatePill) return;
+      // On mobile (< 768px), if main chat is hidden (user is in contacts list), never show pill
+      if (window.innerWidth < 768 && mainChat.classList.contains('hidden')) {
+        chatDatePill.classList.add('hidden');
+        return;
+      }
+      if (!currentContact || messages.length === 0) {
+        chatDatePill.classList.add('hidden');
+        return;
+      }
+
+      const vpRect = viewport ? viewport.getBoundingClientRect() : { top: 0, bottom: 0 };
+      const chats = viewport ? viewport.querySelectorAll('.chat') : [];
+      let targetDate = null;
+
+      for (let i = 0; i < chats.length; i++) {
+        const el = chats[i];
+        const r = el.getBoundingClientRect();
+        if (r.bottom >= vpRect.top + 10) {
+          if (el.dataset && el.dataset.date) {
+            targetDate = Number(el.dataset.date);
+          }
+          break;
+        }
+      }
+
+      if (!targetDate && messages.length > 0) {
+        if (viewport && viewport.scrollTop <= 10) {
+          targetDate = messages[0].date;
+        } else {
+          targetDate = messages[messages.length - 1].date;
+        }
+      }
+
+      if (targetDate) {
+        chatDatePill.textContent = new Date(targetDate * 1000).toLocaleDateString([], {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric'
+        });
+        chatDatePill.classList.remove('hidden');
+      } else {
+        chatDatePill.classList.add('hidden');
+      }
+    }
+
+    // Bi-directional Scroll Handling
+    viewport.addEventListener('scroll', async () => {
+      requestDatePillUpdate();
+
+      if (isJumpingToContext || !currentContact || messages.length === 0) return;
+
+      // Top scroll -> Fetch older messages
+      if (viewport.scrollTop < 60 && !isFetchingOlder && hasMoreOlder) {
+        isFetchingOlder = true;
+        const earliestTs = messages[0].date;
+        const prevScrollHeight = viewport.scrollHeight;
+
+        try {
+          const res = await fetch(`${API_BASE}/messages?address=${encodeURIComponent(currentContact.address)}&before=${earliestTs}&limit=50`);
+          const data = await res.json();
+          const older = data.messages || [];
+
+          if (older.length === 0) {
+            hasMoreOlder = false;
+          } else {
+            messages = [...older, ...messages];
+            renderMessages();
+            viewport.scrollTop = viewport.scrollHeight - prevScrollHeight;
+            updateVisibleDatePill();
+          }
+        } catch (err) {
+          console.error(err);
+        } finally {
+          isFetchingOlder = false;
+        }
+      }
+
+      // Bottom scroll -> Fetch newer messages
+      if (viewport.scrollTop + viewport.clientHeight > viewport.scrollHeight - 60 && !isFetchingNewer && hasMoreNewer) {
+        isFetchingNewer = true;
+        const latestTs = messages[messages.length - 1].date;
+
+        try {
+          const res = await fetch(`${API_BASE}/messages?address=${encodeURIComponent(currentContact.address)}&after=${latestTs}&limit=50`);
+          const data = await res.json();
+          const newer = data.messages || [];
+
+          if (newer.length === 0) {
+            hasMoreNewer = false;
+          } else {
+            messages = [...messages, ...newer];
+            renderMessages();
+            updateVisibleDatePill();
+          }
+        } catch (err) {
+          console.error(err);
+        } finally {
+          isFetchingNewer = false;
+        }
+      }
+    });
+
+    btnJumpLatest.onclick = () => {
+      if (!currentContact) return;
+      selectContact(currentContact);
+    };
+
+    // Global Search Input Listener
+    searchInput.addEventListener('input', (e) => {
+      updateSearchControls();
+      clearTimeout(searchDebounceTimer);
+      const q = e.target.value.trim();
+      searchDebounceTimer = setTimeout(() => {
+        executeGlobalSearch(q);
+      }, 200);
+    });
+
+    btnClearSearch.onclick = () => {
+      searchInput.value = '';
+      updateSearchControls();
+      executeGlobalSearch('');
+      searchInput.focus();
+    };
+
+    btnBack.onclick = openListView;
+
+    window.addEventListener('resize', () => {
+      if (window.innerWidth >= 768) {
+        sidebar.classList.remove('hidden');
+        mainChat.classList.remove('hidden');
+      } else {
+        if (currentContact) {
+          sidebar.classList.add('hidden');
+          mainChat.classList.remove('hidden');
+        } else {
+          sidebar.classList.remove('hidden');
+          mainChat.classList.add('hidden');
+        }
+      }
+      updateVisibleDatePill();
+    });
+
+    // Keyboard Navigation & Shortcuts
+    function getSelectableItems() {
+      return Array.from(contactsListEl.querySelectorAll('.contact-item, .search-msg-item'));
+    }
+
+    function moveHighlight(direction) {
+      const items = getSelectableItems();
+      if (items.length === 0) return;
+      let currentIndex = items.findIndex(el => el.classList.contains('bg-base-300'));
+      let nextIndex = currentIndex + direction;
+      if (currentIndex === -1) {
+        nextIndex = direction > 0 ? 0 : items.length - 1;
+      } else {
+        if (nextIndex < 0) nextIndex = 0;
+        if (nextIndex >= items.length) nextIndex = items.length - 1;
+      }
+      const target = items[nextIndex];
+      if (target) {
+        items.forEach(el => el.classList.remove('bg-base-300'));
+        target.classList.add('bg-base-300');
+        target.scrollIntoView({ block: 'nearest' });
+      }
+    }
+
+    function navigateList(direction) {
+      const items = getSelectableItems();
+      if (items.length === 0) return;
+      let currentIndex = items.findIndex(el => el.classList.contains('bg-base-300'));
+      let nextIndex = currentIndex + direction;
+      if (currentIndex === -1) {
+        nextIndex = direction > 0 ? 0 : items.length - 1;
+      } else {
+        if (nextIndex < 0) nextIndex = 0;
+        if (nextIndex >= items.length) nextIndex = items.length - 1;
+      }
+      const target = items[nextIndex];
+      if (target) {
+        items.forEach(el => el.classList.remove('bg-base-300'));
+        target.classList.add('bg-base-300');
+        target.scrollIntoView({ block: 'nearest' });
+        target.click();
+      }
+    }
+
+    window.addEventListener('keydown', (e) => {
+      const isInput = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA';
+
+      // 1. Lightbox Active: Handle Esc and Left/Right navigation
+      if (modalLightbox && modalLightbox.open) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          modalLightbox.close();
+          return;
+        }
+        if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          lightboxPrev();
+          return;
+        }
+        if (e.key === 'ArrowRight') {
+          e.preventDefault();
+          lightboxNext();
+          return;
+        }
+        return;
+      }
+
+      // 2. Focus Search: "/" or Cmd+K / Ctrl+K
+      if ((e.key === '/' && !isInput) || ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k')) {
+        e.preventDefault();
+        searchInput.focus();
+        searchInput.select();
+        return;
+      }
+
+      // 3. Escape Hierarchy: Close modal / Close stats view / Close gallery view / Clear search / Mobile back
+      if (e.key === 'Escape') {
+        if (modalShortcuts && modalShortcuts.open) {
+          modalShortcuts.close();
+          return;
+        }
+        if (isStatsOpen) {
+          e.preventDefault();
+          closeStatsView();
+          return;
+        }
+        if (isGalleryOpen) {
+          e.preventDefault();
+          closeGalleryView();
+          return;
+        }
+        if (searchInput.value || isInput) {
+          searchInput.value = '';
+          searchInput.blur();
+          executeGlobalSearch('');
+          return;
+        }
+        if (window.innerWidth < 768 && !mainChat.classList.contains('hidden')) {
+          openListView();
+          return;
+        }
+      }
+
+      // 4. Search input navigation
+      if (isInput && e.target === searchInput) {
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          moveHighlight(1);
+          return;
+        }
+        if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          moveHighlight(-1);
+          return;
+        }
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const items = getSelectableItems();
+          if (items.length > 0) {
+            const active = items.find(el => el.classList.contains('bg-base-300')) || items[0];
+            active.click();
+            searchInput.blur();
+          }
+          return;
+        }
+        return;
+      }
+
+      // Ignore remaining shortcuts if user is typing in another input
+      if (isInput) return;
+
+      // 5. Toggle Media Gallery ("g")
+      if (e.key.toLowerCase() === 'g' && currentContact) {
+        e.preventDefault();
+        toggleGalleryView();
+        return;
+      }
+
+      // 5b. Toggle Archive Stats ("s")
+      if (e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        toggleStatsView();
+        return;
+      }
+
+      // 6. Arrow navigation & vim keys (j / k) - only when gallery & stats are NOT open
+      if (!isGalleryOpen && !isStatsOpen) {
+        if (e.key === 'ArrowDown' || e.key === 'j') {
+          e.preventDefault();
+          navigateList(1);
+          return;
+        }
+        if (e.key === 'ArrowUp' || e.key === 'k') {
+          e.preventDefault();
+          navigateList(-1);
+          return;
+        }
+
+        // Enter: Open currently selected item
+        if (e.key === 'Enter') {
+          const items = getSelectableItems();
+          const active = items.find(el => el.classList.contains('bg-base-300'));
+          if (active) {
+            e.preventDefault();
+            active.click();
+            return;
+          }
+        }
+      }
+
+      // 7. Number keys 1 and 2: Switch Tabs (Contacts / Unknown)
+      if (!isSearchMode && !isGalleryOpen) {
+        if (e.key === '1') {
+          e.preventDefault();
+          setContactTab('known');
+          return;
+        }
+        if (e.key === '2') {
+          e.preventDefault();
+          setContactTab('unknown');
+          return;
+        }
+      }
+
+      // 8. Jump to latest message: "l" or End
+      if (e.key.toLowerCase() === 'l' || e.key === 'End') {
+        if (currentContact && !isGalleryOpen) {
+          e.preventDefault();
+          btnJumpLatest.click();
+          return;
+        }
+      }
+
+      // 9. Help dialog: "?"
+      if (e.key === '?') {
+        e.preventDefault();
+        if (modalShortcuts) {
+          if (modalShortcuts.open) modalShortcuts.close();
+          else modalShortcuts.showModal();
+        }
+      }
+    });
+
+    // Refresh DB Indexing
+    const btnRefreshDb = document.getElementById('btn-refresh-db');
+    const refreshIcon = document.getElementById('refresh-icon-container');
+    const refreshText = document.getElementById('refresh-text-container');
+    const refreshSvg = `<svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>`;
+    
+    if (btnRefreshDb) {
+      btnRefreshDb.onclick = async (e) => {
+        if (refreshIcon) refreshIcon.innerHTML = '<span class="loading loading-spinner loading-xs"></span>';
+        if (refreshText) refreshText.textContent = 'Re-indexing...';
+        btnRefreshDb.classList.add('opacity-60', 'pointer-events-none');
+        try {
+          await fetch(`${API_BASE}/refresh`, { method: 'POST' });
+          let attempts = 0;
+          const poll = setInterval(async () => {
+            attempts++;
+            try {
+              const hRes = await fetch(`${API_BASE}/health`);
+              const hData = await hRes.json();
+              if (!hData.indexing || attempts > 30) {
+                clearInterval(poll);
+                if (refreshIcon) refreshIcon.innerHTML = refreshSvg;
+                if (refreshText) refreshText.textContent = 'Re-index Database';
+                btnRefreshDb.classList.remove('opacity-60', 'pointer-events-none');
+                statsData = null;
+                if (isStatsOpen) loadStatsData(true);
+                if (!isSearchMode) loadContacts();
+              }
+            } catch (err) {
+              clearInterval(poll);
+              if (refreshIcon) refreshIcon.innerHTML = refreshSvg;
+              if (refreshText) refreshText.textContent = 'Re-index Database';
+              btnRefreshDb.classList.remove('opacity-60', 'pointer-events-none');
+            }
+          }, 1000);
+        } catch (e) {
+          if (refreshIcon) refreshIcon.innerHTML = refreshSvg;
+          if (refreshText) refreshText.textContent = 'Re-index Database';
+          btnRefreshDb.classList.remove('opacity-60', 'pointer-events-none');
+        }
+      };
+    }
+
+    // Upload Modal & Ingestion Logic
+    const btnOpenUpload = document.getElementById('btn-open-upload');
+    const modalUpload = document.getElementById('modal-upload');
+    const btnCloseUpload = document.getElementById('btn-close-upload');
+    const btnCancelUpload = document.getElementById('btn-cancel-upload');
+    const btnStartUpload = document.getElementById('btn-start-upload');
+    const uploadDropzone = document.getElementById('upload-dropzone');
+    const fileUploadInput = document.getElementById('file-upload-input');
+    const uploadStatusCard = document.getElementById('upload-status-card');
+    const uploadFilename = document.getElementById('upload-filename');
+    const uploadFilesize = document.getElementById('upload-filesize');
+    const uploadProgressBar = document.getElementById('upload-progress-bar');
+    const uploadStatusText = document.getElementById('upload-status-text');
+    const uploadPercentText = document.getElementById('upload-percent-text');
+    const uploadAlert = document.getElementById('upload-alert');
+    const uploadAlertText = document.getElementById('upload-alert-text');
+
+    let selectedUploadFile = null;
+    let isUploading = false;
+    let progressPollTimer = null;
+
+    function formatBytes(bytes) {
+      if (!bytes || bytes === 0) return '0 B';
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+
+    function resetUploadState() {
+      selectedUploadFile = null;
+      isUploading = false;
+      if (progressPollTimer) {
+        clearInterval(progressPollTimer);
+        progressPollTimer = null;
+      }
+      if (fileUploadInput) fileUploadInput.value = '';
+      if (uploadDropzone) uploadDropzone.classList.remove('hidden');
+      if (uploadStatusCard) uploadStatusCard.classList.add('hidden');
+      if (btnStartUpload) {
+        btnStartUpload.classList.add('hidden');
+        btnStartUpload.disabled = true;
+        btnStartUpload.textContent = 'Start Import';
+      }
+      if (btnCancelUpload) {
+        btnCancelUpload.disabled = false;
+        btnCancelUpload.textContent = 'Cancel';
+      }
+      if (uploadAlert) uploadAlert.classList.add('hidden');
+      if (uploadProgressBar) {
+        uploadProgressBar.value = 0;
+        uploadProgressBar.classList.remove('progress-success', 'progress-error');
+        uploadProgressBar.classList.add('progress-primary');
+      }
+    }
+
+    if (btnOpenUpload && modalUpload) {
+      btnOpenUpload.onclick = () => {
+        if (document.activeElement) document.activeElement.blur();
+        resetUploadState();
+        modalUpload.showModal();
+      };
+    }
+
+    function closeUploadModal() {
+      if (isUploading) {
+        if (!confirm('Upload/Ingestion is currently running. Are you sure you want to dismiss?')) return;
+      }
+      resetUploadState();
+      if (modalUpload) modalUpload.close();
+    }
+
+    if (btnCloseUpload) btnCloseUpload.onclick = closeUploadModal;
+    if (btnCancelUpload) btnCancelUpload.onclick = closeUploadModal;
+
+    if (uploadDropzone && fileUploadInput) {
+      uploadDropzone.onclick = () => fileUploadInput.click();
+
+      ['dragenter', 'dragover'].forEach(name => {
+        uploadDropzone.addEventListener(name, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          uploadDropzone.classList.add('border-primary', 'bg-primary/5');
+        });
+      });
+
+      ['dragleave', 'drop'].forEach(name => {
+        uploadDropzone.addEventListener(name, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          uploadDropzone.classList.remove('border-primary', 'bg-primary/5');
+        });
+      });
+
+      uploadDropzone.addEventListener('drop', (e) => {
+        const files = e.dataTransfer.files;
+        if (files && files.length > 0) handleFileSelection(files[0]);
+      });
+
+      fileUploadInput.onchange = (e) => {
+        if (e.target.files && e.target.files.length > 0) {
+          handleFileSelection(e.target.files[0]);
+        }
+      };
+    }
+
+    function handleFileSelection(file) {
+      if (!file.name.toLowerCase().endsWith('.xml')) {
+        showUploadAlert('Please select a valid SMS Backup & Restore .xml file', 'alert-warning');
+        return;
+      }
+      selectedUploadFile = file;
+      if (uploadFilename) uploadFilename.textContent = file.name;
+      if (uploadFilesize) uploadFilesize.textContent = formatBytes(file.size);
+      if (uploadDropzone) uploadDropzone.classList.add('hidden');
+      if (uploadStatusCard) uploadStatusCard.classList.remove('hidden');
+      if (btnStartUpload) {
+        btnStartUpload.classList.remove('hidden');
+        btnStartUpload.disabled = false;
+        btnStartUpload.textContent = 'Start Import';
+      }
+      if (uploadStatusText) uploadStatusText.textContent = 'File ready to import';
+      if (uploadPercentText) uploadPercentText.textContent = '';
+      if (uploadAlert) uploadAlert.classList.add('hidden');
+    }
+
+    function showUploadAlert(msg, type = 'alert-info') {
+      if (!uploadAlert || !uploadAlertText) return;
+      uploadAlert.className = `mt-4 alert text-xs ${type}`;
+      uploadAlertText.textContent = msg;
+      uploadAlert.classList.remove('hidden');
+    }
+
+    if (btnStartUpload) {
+      btnStartUpload.onclick = async () => {
+        if (!selectedUploadFile || isUploading) return;
+        isUploading = true;
+        btnStartUpload.disabled = true;
+        btnStartUpload.innerHTML = '<span class="loading loading-spinner loading-xs"></span> Ingesting...';
+        btnCancelUpload.disabled = true;
+
+        if (uploadStatusText) uploadStatusText.textContent = 'Streaming file to ingestion engine...';
+        if (uploadProgressBar) uploadProgressBar.value = 0;
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/upload');
+        xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+        xhr.setRequestHeader('X-Filename', selectedUploadFile.name);
+
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) {
+            const pct = Math.round((e.loaded / e.total) * 100);
+            if (uploadProgressBar) uploadProgressBar.value = pct;
+            if (uploadPercentText) uploadPercentText.textContent = `${pct}%`;
+            if (uploadStatusText) uploadStatusText.textContent = `Streaming file... (${formatBytes(e.loaded)} / ${formatBytes(e.total)})`;
+          }
+        };
+
+        // Poll progress endpoint
+        progressPollTimer = setInterval(async () => {
+          try {
+            const res = await fetch('/api/progress');
+            if (res.ok) {
+              const data = await res.json();
+              if (data.status === 'parsing' || data.status === 'importing') {
+                const total = data.total_messages || 0;
+                const proc = data.processed_messages || 0;
+                if (uploadStatusText) {
+                  uploadStatusText.textContent = `Ingesting messages... (${proc.toLocaleString()} ${total ? 'of ' + total.toLocaleString() : 'processed'})`;
+                }
+                if (total > 0 && uploadProgressBar) {
+                  const parsePct = Math.round((proc / total) * 100);
+                  uploadProgressBar.value = parsePct;
+                  if (uploadPercentText) uploadPercentText.textContent = `${parsePct}%`;
+                }
+              } else if (data.status === 'completed') {
+                clearInterval(progressPollTimer);
+                progressPollTimer = null;
+                if (uploadProgressBar) {
+                  uploadProgressBar.value = 100;
+                  uploadProgressBar.classList.remove('progress-primary');
+                  uploadProgressBar.classList.add('progress-success');
+                }
+                if (uploadPercentText) uploadPercentText.textContent = '100%';
+                if (uploadStatusText) uploadStatusText.textContent = `Ingestion complete! ${data.processed_messages.toLocaleString()} messages processed.`;
+                showUploadAlert(`Successfully imported ${selectedUploadFile.name}. Duplicate messages were safely skipped.`, 'alert-success');
+                btnStartUpload.classList.add('hidden');
+                btnCancelUpload.disabled = false;
+                btnCancelUpload.textContent = 'Close';
+                isUploading = false;
+                statsData = null;
+                if (isStatsOpen) loadStatsData(true);
+                // Auto reload contacts
+                loadContacts();
+              } else if (data.status === 'error') {
+                clearInterval(progressPollTimer);
+                progressPollTimer = null;
+                if (uploadProgressBar) {
+                  uploadProgressBar.classList.remove('progress-primary');
+                  uploadProgressBar.classList.add('progress-error');
+                }
+                showUploadAlert(`Ingestion failed: ${data.error_message || 'Unknown error'}`, 'alert-error');
+                btnStartUpload.disabled = false;
+                btnStartUpload.textContent = 'Retry';
+                btnCancelUpload.disabled = false;
+                isUploading = false;
+              }
+            }
+          } catch (e) {
+            // Transient polling error
+          }
+        }, 1000);
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            if (uploadStatusText) uploadStatusText.textContent = 'File transferred. Ingesting & deduplicating records...';
+          } else {
+            clearInterval(progressPollTimer);
+            progressPollTimer = null;
+            showUploadAlert(`Upload error: HTTP ${xhr.status}`, 'alert-error');
+            btnStartUpload.disabled = false;
+            btnStartUpload.textContent = 'Retry';
+            btnCancelUpload.disabled = false;
+            isUploading = false;
+          }
+        };
+
+        xhr.onerror = () => {
+          clearInterval(progressPollTimer);
+          progressPollTimer = null;
+          showUploadAlert('Network error during file upload', 'alert-error');
+          btnStartUpload.disabled = false;
+          btnStartUpload.textContent = 'Retry';
+          btnCancelUpload.disabled = false;
+          isUploading = false;
+        };
+
+        xhr.send(selectedUploadFile);
+      };
+    }
+
+    // User Profile
+    async function loadUserProfile() {
+      try {
+        const res = await fetch('/api/auth/me');
+        if (res.ok) {
+          const user = await res.json();
+          const name = user.display_name || user.username || 'User';
+          const initial = name.charAt(0).toUpperCase();
+          const initialElem = document.getElementById('user-avatar-initial');
+          const nameElem = document.getElementById('user-display-name');
+          if (initialElem) initialElem.textContent = initial;
+          if (nameElem) nameElem.textContent = name;
+        }
+      } catch (err) {
+        console.error('Failed to load user profile:', err);
+      }
+    }
+
+    // Init
+    loadUserProfile();
+    loadContacts();
+  </script>
+</body>
+</html>

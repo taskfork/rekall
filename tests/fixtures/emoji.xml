@@ -1,0 +1,5 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
+<smses count="2">
+<sms protocol="0" address="+15559990001" date="1700000000000" type="1" subject="null" body="before &#55357;&#56832; after" toa="null" sc_toa="null" service_center="null" read="1" status="-1" locked="0" date_sent="0" sub_id="-1" readable_date="x" contact_name="E" />
+<sms protocol="0" address="+15559990001" date="1700000001000" type="1" subject="null" body="second" toa="null" sc_toa="null" service_center="null" read="1" status="-1" locked="0" date_sent="0" sub_id="-1" readable_date="x" contact_name="E" />
+</smses>

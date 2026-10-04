@@ -1,0 +1,31 @@
+services:
+  rekall:
+    container_name: rekall
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: rekall:local
+    user: "1000:1000"
+    restart: unless-stopped
+    command: ["python", "/app/server.py"]
+    env_file:
+      - .env
+    environment:
+      - DATA_DIR=/data
+      - PORT=3089
+      - STATIC_DIR=/app/static
+      - CACHE_DIR=/cache
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./config.py:/app/config.py:ro
+      - ./auth.py:/app/auth.py:ro
+      - ./media.py:/app/media.py:ro
+      - ./contacts.py:/app/contacts.py:ro
+      - ./analytics.py:/app/analytics.py:ro
+      - ./ingest.py:/app/ingest.py:ro
+      - ./server.py:/app/server.py:ro
+      - ./static:/app/static:ro
+      - ./cache:/cache
+      - ./data:/data
+    ports:
+      - "127.0.0.1:3089:3089"

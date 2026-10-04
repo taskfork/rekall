@@ -1,0 +1,15 @@
+{
+  "name": "Rekall",
+  "short_name": "Rekall",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d0f12",
+  "theme_color": "#0d0f12",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%232563eb'/><path d='M25 35h50a5 5 0 0 1 5 5v25a5 5 0 0 1-5 5H40l-15 12V40a5 5 0 0 1 5-5z' fill='white'/></svg>",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}
