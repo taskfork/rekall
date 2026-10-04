@@ -927,7 +927,7 @@
             <span class="text-[11px] font-mono opacity-80 uppercase">${escapeHtml(ext)}</span>
           </div>
         ` : `
-          <img src="${API_BASE}/media?id=${m.id}&thumb=1" loading="lazy" class="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105" alt="Media thumbnail">
+          <img src="${API_BASE}/media?id=${m.id}&thumb=1&v=2" loading="lazy" class="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105" alt="Media thumbnail">
         `}
         <div class="absolute inset-x-0 bottom-0 p-1.5 bg-gradient-to-t from-black/80 via-black/40 to-transparent text-[10px] text-white flex justify-between items-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
           <span>${formatDate(m.date)}</span>
@@ -2123,7 +2123,7 @@
           if (m.media_type.startsWith('image/')) {
             mediaHtml = `
               <div class="mb-1 rounded-lg overflow-hidden max-w-xs sm:max-w-sm max-h-72 cursor-pointer bg-base-300/40 select-none" onclick="openLightboxForMessageId(${m.id})">
-                <img src="${API_BASE}/media?id=${m.id}&thumb=1" loading="lazy" class="w-full h-auto max-h-72 object-cover hover:opacity-90 transition-opacity" alt="Image attachment">
+                <img src="${API_BASE}/media?id=${m.id}&thumb=1&v=2" loading="lazy" class="w-full h-auto max-h-72 object-cover hover:opacity-90 transition-opacity" alt="Image attachment">
               </div>
             `;
           } else if (m.media_type.startsWith('video/')) {
