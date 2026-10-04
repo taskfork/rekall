@@ -424,6 +424,29 @@ class SMSHandler(BaseHTTPRequestHandler):
 
                 if is_thumb:
                     content, content_type = media.get_or_create_thumbnail(user_id or "default", msg_id, media_type, media_data)
+                elif media_type in ("image/heic", "image/heif"):
+                    raw_req = params.get("raw", ["0"])[0] == "1"
+                    if raw_req:
+                        content, content_type = media_data, media_type
+                    else:
+                        full_cache_file = os.path.join(CACHE_DIR, f"{user_id or 'default'}_{msg_id}_full.webp")
+                        if os.path.isfile(full_cache_file) and os.path.getsize(full_cache_file) > 0:
+                            try:
+                                with open(full_cache_file, "rb") as f:
+                                    content = f.read()
+                                content_type = "image/webp"
+                            except Exception:
+                                content, content_type = media.convert_image_to_web(media_data)
+                        else:
+                            content, content_type = media.convert_image_to_web(media_data)
+                            if content_type == "image/webp":
+                                try:
+                                    tmp = full_cache_file + f".tmp.{os.getpid()}"
+                                    with open(tmp, "wb") as f:
+                                        f.write(content)
+                                    os.replace(tmp, full_cache_file)
+                                except Exception:
+                                    pass
                 else:
                     content, content_type = media_data, media_type
 

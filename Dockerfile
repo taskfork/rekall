@@ -1,6 +1,6 @@
 FROM python:3.12-alpine
 
-RUN pip install --no-cache-dir pillow \
+RUN pip install --no-cache-dir pillow pillow-heif \
     && addgroup -g 1000 -S rekall \
     && adduser -u 1000 -S rekall -G rekall
 
