@@ -388,9 +388,18 @@
       </div>
 
       <!-- Bottom Chat Bar -->
-      <div id="chat-bottom-bar" class="navbar bg-base-200 border-t border-base-300 min-h-12 px-4 pb-[env(safe-area-inset-bottom)] flex justify-between items-center flex-shrink-0 hidden">
-        <span id="loaded-count-label" class="badge badge-ghost badge-sm">0 messages loaded</span>
-        <button id="btn-jump-latest" class="btn btn-primary btn-sm">Jump to Latest</button>
+      <div id="chat-bottom-bar" class="navbar bg-base-200 border-t border-base-300 h-14 min-h-14 px-4 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex items-center justify-between flex-shrink-0 z-10 hidden">
+        <div class="navbar-start w-auto flex-1 min-w-0 flex items-center">
+          <span id="loaded-count-label" class="badge badge-ghost badge-sm font-medium truncate">0 messages loaded</span>
+        </div>
+        <div class="navbar-end w-auto flex-1 min-w-0 flex items-center justify-end">
+          <button id="btn-jump-latest" class="btn btn-primary btn-sm gap-1.5 shadow-sm">
+            <span>Jump to Latest</span>
+            <svg class="w-3.5 h-3.5 fill-none stroke-current" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+            </svg>
+          </button>
+        </div>
       </div>
 
     </main>
@@ -1561,6 +1570,29 @@
       return clean.slice(0, 2).toUpperCase() || '?';
     }
 
+    const SENDER_COLORS = [
+      'text-sky-400',
+      'text-emerald-400',
+      'text-amber-400',
+      'text-rose-400',
+      'text-purple-400',
+      'text-indigo-400',
+      'text-teal-400',
+      'text-orange-400',
+      'text-cyan-400',
+      'text-pink-400'
+    ];
+
+    function getSenderColor(str) {
+      if (!str) return 'text-primary';
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) {
+        hash = (hash * 31 + str.charCodeAt(i)) & 0xffffffff;
+      }
+      return SENDER_COLORS[Math.abs(hash) % SENDER_COLORS.length];
+    }
+
+
     function escapeHtml(str) {
       return (str || '')
         .replace(/&/g, '&amp;')
@@ -1669,19 +1701,29 @@
         const isActive = currentContact && currentContact.address === c.address;
         const item = document.createElement('div');
         item.className = `contact-item flex items-center gap-3 p-3 cursor-pointer hover:bg-base-300 transition-colors select-none ${isActive ? 'bg-base-300' : ''}`;
+        
+        const isGroup = c.is_group || (c.address && c.address.includes(','));
+        const memberCount = isGroup ? c.address.split(',').length : 0;
+        const avatarContent = isGroup
+          ? `<svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>`
+          : `<span>${getInitials(c.name)}</span>`;
+
         item.innerHTML = `
           <div class="avatar placeholder flex-shrink-0">
             <div class="bg-neutral text-neutral-content rounded-full w-9 h-9 flex items-center justify-center font-bold text-xs">
-              <span>${getInitials(c.name)}</span>
+              ${avatarContent}
             </div>
           </div>
           <div class="flex-1 min-w-0 overflow-hidden">
             <div class="flex justify-between items-baseline gap-2">
-              <span class="font-semibold text-sm truncate text-base-content">${escapeHtml(c.name)}</span>
+              <span class="font-semibold text-sm truncate text-base-content flex items-center gap-1.5">
+                ${escapeHtml(c.name)}
+                ${isGroup ? '<span class="badge badge-xs badge-neutral opacity-70">Group</span>' : ''}
+              </span>
               <span class="text-xs opacity-50 flex-shrink-0">${formatDate(c.last_date)}</span>
             </div>
             <div class="flex justify-between items-center gap-2 opacity-70 mt-0.5">
-              <span class="text-xs truncate">${escapeHtml(c.address)}</span>
+              <span class="text-xs truncate">${isGroup ? `${memberCount} members` : escapeHtml(c.address)}</span>
               <span class="badge badge-sm badge-ghost flex-shrink-0">${Number(c.count).toLocaleString()}</span>
             </div>
           </div>
@@ -1800,20 +1842,25 @@
       items.forEach(item => {
         const el = document.createElement('div');
         if (item.type === 'contact') {
+          const isGroup = item.is_group || (item.address && item.address.includes(','));
+          const memberCount = isGroup ? item.address.split(',').length : 0;
+          const avatarHtml = isGroup
+            ? `<svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>`
+            : `<span>${getInitials(item.name)}</span>`;
           el.className = 'contact-item flex items-center gap-3 p-3 cursor-pointer hover:bg-base-300 transition-colors select-none';
           el.innerHTML = `
             <div class="avatar placeholder flex-shrink-0">
               <div class="bg-primary/20 text-primary border border-primary/30 rounded-full w-9 h-9 flex items-center justify-center font-bold text-xs">
-                <span>${getInitials(item.name)}</span>
+                ${avatarHtml}
               </div>
             </div>
             <div class="flex-1 min-w-0 overflow-hidden">
               <div class="flex justify-between items-baseline gap-2">
                 <span class="font-semibold text-sm truncate text-base-content">${escapeHtml(item.name)}</span>
-                <span class="badge badge-xs badge-primary font-medium">Contact</span>
+                <span class="badge badge-xs ${isGroup ? 'badge-neutral' : 'badge-primary'} font-medium">${isGroup ? 'Group' : 'Contact'}</span>
               </div>
               <div class="flex justify-between items-center gap-2 opacity-70 mt-0.5">
-                <span class="text-xs truncate">${escapeHtml(item.address)}</span>
+                <span class="text-xs truncate">${isGroup ? `${memberCount} members` : escapeHtml(item.address)}</span>
                 <span class="text-[11px] opacity-50">${Number(item.count).toLocaleString()} texts</span>
               </div>
             </div>
@@ -1915,7 +1962,15 @@
       document.querySelectorAll('.contact-item, .search-msg-item').forEach(el => el.classList.remove('bg-base-300'));
 
       chatTitle.textContent = contact.name;
-      chatSub.textContent = `${contact.address} · ${Number(contact.count || 0).toLocaleString()} texts`;
+      const isGroup = contact.is_group || (contact.address && contact.address.includes(','));
+      if (isGroup) {
+        const memberCount = contact.address.split(',').length;
+        chatSub.textContent = `Group (${memberCount} members) · ${Number(contact.count || 0).toLocaleString()} texts`;
+        chatSub.title = contact.address;
+      } else {
+        chatSub.textContent = `${contact.address} · ${Number(contact.count || 0).toLocaleString()} texts`;
+        chatSub.title = '';
+      }
       if (statsSpanBadge) statsSpanBadge.classList.add('hidden');
       bottomBar.classList.remove('hidden');
 
@@ -1959,14 +2014,22 @@
       if (isStatsOpen) closeStatsView();
       if (isGalleryOpen) closeGalleryView();
       isJumpingToContext = true;
-      currentContact = { address, name: contactName };
+      const isGroup = address && address.includes(',');
+      currentContact = { address, name: contactName, is_group: isGroup };
 
       document.querySelectorAll('.contact-item, .search-msg-item').forEach(el => el.classList.remove('bg-base-300'));
       const activeEl = document.getElementById(`search-msg-${msgId}`);
       if (activeEl) activeEl.classList.add('bg-base-300');
 
       chatTitle.textContent = contactName;
-      chatSub.textContent = `${address}`;
+      if (isGroup) {
+        const memberCount = address.split(',').length;
+        chatSub.textContent = `Group (${memberCount} members)`;
+        chatSub.title = address;
+      } else {
+        chatSub.textContent = `${address}`;
+        chatSub.title = '';
+      }
       if (statsSpanBadge) statsSpanBadge.classList.add('hidden');
       bottomBar.classList.remove('hidden');
 
@@ -2043,6 +2106,17 @@
         row.id = `msg-${m.id}`;
         row.dataset.date = m.date;
 
+        const isGroup = (currentContact && (currentContact.is_group || (currentContact.address && currentContact.address.includes(',')))) || (m.address && m.address.includes(','));
+
+        let senderHeader = '';
+        if (!isOut && isGroup) {
+          const senderDisplay = m.sender_name || m.sender || m.contact_name;
+          if (senderDisplay) {
+            const colorClass = getSenderColor(m.sender || senderDisplay);
+            senderHeader = `<span class="text-xs font-semibold ${colorClass} mr-1.5 select-text">${escapeHtml(senderDisplay)}</span>`;
+          }
+        }
+
         let mediaHtml = '';
         if (m.media_type) {
           if (m.media_type.startsWith('image/')) {
@@ -2063,7 +2137,8 @@
         const bodyText = m.body ? escapeHtml(m.body) : (mediaHtml ? '' : '<span class="opacity-50 italic">(Attachment or empty message)</span>');
 
         row.innerHTML = `
-          <div class="chat-header">
+          <div class="chat-header flex items-baseline">
+            ${senderHeader}
             <time class="text-xs opacity-50">${formatTime(m.date)}</time>
           </div>
           <div class="chat-bubble ${isOut ? 'chat-bubble-primary' : ''} break-words">

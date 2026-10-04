@@ -341,33 +341,40 @@ class SMSHandler(BaseHTTPRequestHandler):
                 before = params.get("before", [""])[0]
                 after = params.get("after", [""])[0]
 
+                phone_map = contacts.get_phone_map(user_id)
+                def format_row(r):
+                    d = dict(r)
+                    snd = d.get("sender") or ""
+                    d["sender_name"] = phone_map.get(snd, snd) if snd else (d.get("contact_name") or "")
+                    return d
+
                 if before:
                     query = """
-                        SELECT id, address, contact_name, type, date, body, media_type
+                        SELECT id, address, contact_name, type, date, body, media_type, sender
                         FROM messages
                         WHERE address = ? AND date < ? AND record_type IN (1, 2)
                         ORDER BY date DESC LIMIT ?
                     """
                     rows = cur.execute(query, (address, int(before), limit)).fetchall()
-                    messages = [dict(r) for r in reversed(rows)]
+                    messages = [format_row(r) for r in reversed(rows)]
                 elif after:
                     query = """
-                        SELECT id, address, contact_name, type, date, body, media_type
+                        SELECT id, address, contact_name, type, date, body, media_type, sender
                         FROM messages
                         WHERE address = ? AND date > ? AND record_type IN (1, 2)
                         ORDER BY date ASC LIMIT ?
                     """
                     rows = cur.execute(query, (address, int(after), limit)).fetchall()
-                    messages = [dict(r) for r in rows]
+                    messages = [format_row(r) for r in rows]
                 else:
                     query = """
-                        SELECT id, address, contact_name, type, date, body, media_type
+                        SELECT id, address, contact_name, type, date, body, media_type, sender
                         FROM messages
                         WHERE address = ? AND record_type IN (1, 2)
                         ORDER BY date DESC LIMIT ?
                     """
                     rows = cur.execute(query, (address, limit)).fetchall()
-                    messages = [dict(r) for r in reversed(rows)]
+                    messages = [format_row(r) for r in reversed(rows)]
 
                 self.send_cors_and_json({"messages": messages})
                 return
@@ -509,10 +516,11 @@ class SMSHandler(BaseHTTPRequestHandler):
                     if words:
                         fts_term = ' '.join(f'"{w}"' for w in words[:-1]) + f' "{words[-1]}"*' if len(words) > 1 else f'"{words[0]}"*'
                         try:
+                            phone_map = contacts.get_phone_map(user_id)
                             if address:
                                 query = """
                                     SELECT m.id, m.address, COALESCE(NULLIF(m.contact_name, ''), m.address) as contact_name,
-                                           m.type, m.date,
+                                           m.type, m.date, m.sender,
                                            snippet(messages_fts, 2, '<mark class="bg-warning text-warning-content rounded px-0.5">', '</mark>', '...', 12) as snippet,
                                            bm25(messages_fts) as score
                                     FROM messages_fts f
@@ -524,7 +532,7 @@ class SMSHandler(BaseHTTPRequestHandler):
                             else:
                                 query = """
                                     SELECT m.id, m.address, COALESCE(NULLIF(m.contact_name, ''), m.address) as contact_name,
-                                           m.type, m.date,
+                                           m.type, m.date, m.sender,
                                            snippet(messages_fts, 2, '<mark class="bg-warning text-warning-content rounded px-0.5">', '</mark>', '...', 12) as snippet,
                                            bm25(messages_fts) as score
                                     FROM messages_fts f
@@ -535,6 +543,8 @@ class SMSHandler(BaseHTTPRequestHandler):
                                 rows = cur.execute(query, (fts_term, limit, offset)).fetchall()
                             for r in rows:
                                 d = dict(r)
+                                snd = d.get("sender") or ""
+                                d["sender_name"] = phone_map.get(snd, snd) if snd else (d.get("contact_name") or "")
                                 d["score"] = round(abs(d.get("score") or 1.0), 2)
                                 results.append(d)
                         except Exception as e:
@@ -588,7 +598,7 @@ class SMSHandler(BaseHTTPRequestHandler):
                 dt = target["date"]
 
                 q_before = """
-                    SELECT id, address, contact_name, type, date, body, media_type
+                    SELECT id, address, contact_name, type, date, body, media_type, sender
                     FROM messages
                     WHERE address = ? AND date <= ? AND record_type IN (1, 2)
                     ORDER BY date DESC LIMIT 25
@@ -596,14 +606,21 @@ class SMSHandler(BaseHTTPRequestHandler):
                 before_rows = list(reversed(cur.execute(q_before, (addr, dt)).fetchall()))
 
                 q_after = """
-                    SELECT id, address, contact_name, type, date, body, media_type
+                    SELECT id, address, contact_name, type, date, body, media_type, sender
                     FROM messages
                     WHERE address = ? AND date > ? AND record_type IN (1, 2)
                     ORDER BY date ASC LIMIT 25
                 """
                 after_rows = list(cur.execute(q_after, (addr, dt)).fetchall())
 
-                combined = [dict(r) for r in (before_rows + after_rows)]
+                phone_map = contacts.get_phone_map(user_id)
+                def format_row(r):
+                    d = dict(r)
+                    snd = d.get("sender") or ""
+                    d["sender_name"] = phone_map.get(snd, snd) if snd else (d.get("contact_name") or "")
+                    return d
+
+                combined = [format_row(r) for r in (before_rows + after_rows)]
                 self.send_cors_and_json({
                     "target_id": int(msg_id),
                     "address": addr,
