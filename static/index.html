@@ -13,6 +13,35 @@
   <script src="/js/tailwind.js"></script>
   <script src="/js/chart.umd.min.js"></script>
   <style>
+    /* PWA & Mobile Touch Polish */
+    html, body {
+      overscroll-behavior: none;
+      -webkit-overflow-scrolling: touch;
+    }
+    button, .btn, a, .contact-item, .tab {
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .select-none, .navbar, .tab, .stat, .badge, .btn {
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    
+    @media (max-width: 767.98px) {
+      #main-chat {
+        transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+        will-change: transform;
+      }
+    }
+
+    @supports (padding-top: env(safe-area-inset-top)) {
+      .pwa-header {
+        padding-top: env(safe-area-inset-top);
+        height: calc(4rem + env(safe-area-inset-top));
+        min-height: calc(4rem + env(safe-area-inset-top));
+      }
+    }
+
     @keyframes jumpContourGlow {
       0% {
         filter: drop-shadow(0 0 0px oklch(var(--p) / 0)) drop-shadow(0 0 0px oklch(var(--p) / 0));
@@ -34,13 +63,13 @@
 </head>
 <body class="h-full h-screen h-[100dvh] w-full overflow-hidden bg-base-100 text-base-content flex">
 
-  <div id="app" class="flex w-full h-full max-h-screen max-h-[100dvh] overflow-hidden">
+  <div id="app" class="flex w-full h-full max-h-screen max-h-[100dvh] overflow-hidden relative">
     
     <!-- Sidebar: Contacts & Global Search -->
     <aside id="sidebar" class="w-full md:w-80 lg:w-96 flex-shrink-0 h-full max-h-full min-h-0 flex flex-col bg-base-200 border-r border-base-300 overflow-hidden">
       
       <!-- Sidebar Header -->
-      <div class="navbar bg-base-200 border-b border-base-300 px-4 h-16 min-h-16 py-0 flex justify-between items-center flex-shrink-0">
+      <div class="navbar pwa-header bg-base-200 border-b border-base-300 px-4 h-16 min-h-16 py-0 flex justify-between items-center flex-shrink-0">
         <div class="flex items-center gap-2.5 h-full">
           <svg class="w-6 h-6 text-primary fill-current flex-shrink-0" viewBox="0 0 24 24">
             <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
@@ -144,15 +173,37 @@
 
       <!-- Contacts & Search Results Container -->
       <div id="contacts-list" class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden divide-y divide-base-300 pb-[env(safe-area-inset-bottom)] overscroll-contain">
-        <div class="p-4 text-center opacity-50 text-sm">Loading contacts...</div>
+        <div class="p-3 space-y-3">
+          <div class="flex items-center gap-3">
+            <div class="skeleton w-10 h-10 rounded-full shrink-0"></div>
+            <div class="flex flex-col gap-1.5 flex-1 min-w-0">
+              <div class="skeleton h-3.5 w-2/5"></div>
+              <div class="skeleton h-2.5 w-3/5"></div>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="skeleton w-10 h-10 rounded-full shrink-0"></div>
+            <div class="flex flex-col gap-1.5 flex-1 min-w-0">
+              <div class="skeleton h-3.5 w-1/2"></div>
+              <div class="skeleton h-2.5 w-4/5"></div>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="skeleton w-10 h-10 rounded-full shrink-0"></div>
+            <div class="flex flex-col gap-1.5 flex-1 min-w-0">
+              <div class="skeleton h-3.5 w-1/3"></div>
+              <div class="skeleton h-2.5 w-1/2"></div>
+            </div>
+          </div>
+        </div>
       </div>
     </aside>
 
-    <!-- Main Chat Area -->
-    <main id="main-chat" class="flex-1 h-full max-h-full min-h-0 flex flex-col bg-base-100 relative min-w-0 overflow-hidden hidden md:flex">
+    <!-- Main Chat Area (Mobile Slide Drawer & Desktop Dual-Pane) -->
+    <main id="main-chat" class="flex-1 h-full max-h-full min-h-0 flex flex-col bg-base-100 relative min-w-0 overflow-hidden w-full md:w-auto absolute inset-0 md:static z-20 md:z-auto transform translate-x-full md:translate-x-0 pointer-events-none md:pointer-events-auto">
       
       <!-- Top Chat Header -->
-      <div class="navbar bg-base-200 border-b border-base-300 h-16 min-h-16 px-4 py-0 z-10 flex justify-between items-center flex-shrink-0">
+      <div class="navbar pwa-header bg-base-200 border-b border-base-300 h-16 min-h-16 px-4 py-0 z-10 flex justify-between items-center flex-shrink-0">
         <div class="flex items-center gap-3 min-w-0 h-full">
           <button id="btn-back" class="btn btn-ghost btn-circle btn-sm md:hidden" title="Back to Contacts">
             <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
@@ -181,8 +232,8 @@
               <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
             </button>
             <button id="btn-close-stats" class="btn btn-ghost btn-sm gap-1 hover:bg-base-300" title="Close stats (Esc)">
-              <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
-              <span>Back to Chat</span>
+              <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+              <span class="hidden sm:inline">Close</span>
             </button>
           </div>
         </div>
@@ -227,9 +278,9 @@
       </div>
 
       <!-- Archive Statistics View (Overlays conversation window across entire archive) -->
-      <div id="stats-dashboard-view" class="flex-1 min-h-0 flex-col bg-base-100 hidden">
+      <div id="stats-dashboard-view" class="flex-1 min-h-0 flex-col bg-base-100 hidden overflow-x-hidden">
         <!-- Scrollable Dashboard Content -->
-        <div id="stats-content-area" class="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 space-y-6 overscroll-contain">
+        <div id="stats-content-area" class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 overscroll-contain">
           <!-- Loading State -->
           <div id="stats-loading" class="hero h-64">
             <div class="hero-content text-center opacity-60">
@@ -241,89 +292,89 @@
           </div>
 
           <!-- Main Stats Container -->
-          <div id="stats-cards-container" class="space-y-6 hidden">
+          <div id="stats-cards-container" class="space-y-4 sm:space-y-6 hidden min-w-0">
             <!-- Summary KPI Grid -->
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <div class="stat bg-base-200 border border-base-300 rounded-box p-4 shadow-sm">
-                <div class="stat-title text-xs font-semibold uppercase tracking-wider opacity-60">Total Messages</div>
-                <div id="stat-total-messages" class="stat-value text-2xl lg:text-3xl font-extrabold text-primary my-1">-</div>
-                <div id="stat-sms-mms-sub" class="stat-desc text-xs font-medium opacity-70">- SMS · - MMS</div>
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
+              <div class="stat bg-base-200 border border-base-300 rounded-box p-3 sm:p-4 shadow-sm min-w-0">
+                <div class="stat-title text-[11px] sm:text-xs font-semibold uppercase tracking-wider opacity-60 truncate">Total Messages</div>
+                <div id="stat-total-messages" class="stat-value text-lg sm:text-2xl lg:text-3xl font-extrabold text-primary my-0.5 sm:my-1 truncate">-</div>
+                <div id="stat-sms-mms-sub" class="stat-desc text-[10px] sm:text-xs font-medium opacity-70 truncate">- SMS · - MMS</div>
               </div>
 
-              <div class="stat bg-base-200 border border-base-300 rounded-box p-4 shadow-sm">
-                <div class="stat-title text-xs font-semibold uppercase tracking-wider opacity-60">Sent vs Received</div>
-                <div id="stat-sent-recv" class="stat-value text-2xl lg:text-3xl font-extrabold my-1">- / -</div>
-                <div class="w-full bg-base-300 h-2 rounded-full overflow-hidden mt-1 flex">
+              <div class="stat bg-base-200 border border-base-300 rounded-box p-3 sm:p-4 shadow-sm min-w-0">
+                <div class="stat-title text-[11px] sm:text-xs font-semibold uppercase tracking-wider opacity-60 truncate">Sent vs Received</div>
+                <div id="stat-sent-recv" class="stat-value text-sm sm:text-xl lg:text-2xl font-extrabold my-0.5 sm:my-1 truncate">- / -</div>
+                <div class="w-full bg-base-300 h-1.5 sm:h-2 rounded-full overflow-hidden mt-1 flex">
                   <div id="stat-sent-bar" class="bg-primary h-full transition-all duration-500" style="width: 50%"></div>
                   <div id="stat-recv-bar" class="bg-secondary h-full transition-all duration-500" style="width: 50%"></div>
                 </div>
-                <div class="stat-desc flex justify-between text-[11px] font-medium opacity-70 mt-1">
+                <div class="stat-desc flex justify-between text-[10px] sm:text-[11px] font-medium opacity-70 mt-1">
                   <span id="stat-sent-pct" class="text-primary font-bold">50% Sent</span>
                   <span id="stat-recv-pct" class="text-secondary font-bold">50% Received</span>
                 </div>
               </div>
 
-              <div class="stat bg-base-200 border border-base-300 rounded-box p-4 shadow-sm">
-                <div class="stat-title text-xs font-semibold uppercase tracking-wider opacity-60">Media Attachments</div>
-                <div id="stat-total-media" class="stat-value text-2xl lg:text-3xl font-extrabold text-accent my-1">-</div>
-                <div class="stat-desc text-xs font-medium opacity-70">Photos, audio & video MMS</div>
+              <div class="stat bg-base-200 border border-base-300 rounded-box p-3 sm:p-4 shadow-sm min-w-0">
+                <div class="stat-title text-[11px] sm:text-xs font-semibold uppercase tracking-wider opacity-60 truncate">Media Attachments</div>
+                <div id="stat-total-media" class="stat-value text-lg sm:text-2xl lg:text-3xl font-extrabold text-accent my-0.5 sm:my-1 truncate">-</div>
+                <div class="stat-desc text-[10px] sm:text-xs font-medium opacity-70 truncate">Photos, audio & video MMS</div>
               </div>
 
-              <div class="stat bg-base-200 border border-base-300 rounded-box p-4 shadow-sm">
-                <div class="stat-title text-xs font-semibold uppercase tracking-wider opacity-60">Lifetime Span</div>
-                <div id="stat-span-years" class="stat-value text-2xl lg:text-3xl font-extrabold text-info my-1">- Years</div>
-                <div id="stat-span-dates" class="stat-desc text-xs font-medium opacity-70">- to -</div>
+              <div class="stat bg-base-200 border border-base-300 rounded-box p-3 sm:p-4 shadow-sm min-w-0">
+                <div class="stat-title text-[11px] sm:text-xs font-semibold uppercase tracking-wider opacity-60 truncate">Lifetime Span</div>
+                <div id="stat-span-years" class="stat-value text-lg sm:text-2xl lg:text-3xl font-extrabold text-info my-0.5 sm:my-1 truncate">- Years</div>
+                <div id="stat-span-dates" class="stat-desc text-[10px] sm:text-xs font-medium opacity-70 truncate">- to -</div>
               </div>
             </div>
 
             <!-- Visual Charts Grid (2 columns on large screens) -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
               <!-- Monthly Timeline Area Chart -->
-              <div class="card bg-base-200 border border-base-300 p-4 shadow-sm flex flex-col">
-                <div class="flex justify-between items-center mb-3">
-                  <div>
-                    <h4 class="font-bold text-sm">Monthly Activity Timeline</h4>
-                    <p class="text-xs opacity-50">Volume of messages sent and received per month</p>
+              <div class="card bg-base-200 border border-base-300 p-3 sm:p-4 shadow-sm flex flex-col min-w-0 overflow-hidden">
+                <div class="flex justify-between items-center mb-2 sm:mb-3 gap-2">
+                  <div class="min-w-0">
+                    <h4 class="font-bold text-xs sm:text-sm truncate">Monthly Activity Timeline</h4>
+                    <p class="text-[11px] sm:text-xs opacity-50 truncate">Volume of messages sent and received per month</p>
                   </div>
-                  <span id="chart-timeline-range" class="badge badge-sm badge-ghost font-mono">2015 – 2026</span>
+                  <span id="chart-timeline-range" class="badge badge-sm badge-ghost font-mono flex-shrink-0 text-[10px] sm:text-xs">2015 – 2026</span>
                 </div>
-                <div class="h-64 relative w-full">
+                <div class="h-52 sm:h-64 relative w-full min-w-0">
                   <canvas id="chart-timeline"></canvas>
                 </div>
               </div>
 
               <!-- 24-Hour Circadian Clock -->
-              <div class="card bg-base-200 border border-base-300 p-4 shadow-sm flex flex-col">
-                <div class="flex justify-between items-center mb-3">
-                  <div>
-                    <h4 class="font-bold text-sm">24-Hour Activity Clock</h4>
-                    <p class="text-xs opacity-50">Texting habits by time of day (local time)</p>
+              <div class="card bg-base-200 border border-base-300 p-3 sm:p-4 shadow-sm flex flex-col min-w-0 overflow-hidden">
+                <div class="flex justify-between items-center mb-2 sm:mb-3 gap-2">
+                  <div class="min-w-0">
+                    <h4 class="font-bold text-xs sm:text-sm truncate">24-Hour Activity Clock</h4>
+                    <p class="text-[11px] sm:text-xs opacity-50 truncate">Texting habits by time of day (local time)</p>
                   </div>
-                  <span class="badge badge-sm badge-ghost font-mono">00:00 – 23:00</span>
+                  <span class="badge badge-sm badge-ghost font-mono flex-shrink-0 text-[10px] sm:text-xs">00:00 – 23:00</span>
                 </div>
-                <div class="h-64 relative w-full">
+                <div class="h-52 sm:h-64 relative w-full min-w-0">
                   <canvas id="chart-hourly"></canvas>
                 </div>
               </div>
             </div>
 
             <!-- Top 10 Conversations Leaderboard -->
-            <div class="card bg-base-200 border border-base-300 shadow-sm overflow-hidden">
-              <div class="px-5 py-4 border-b border-base-300 flex justify-between items-center">
-                <div>
-                  <h4 class="font-bold text-base">Most Active Conversations</h4>
-                  <p class="text-xs opacity-50">Top contacts ranked by total volume · Click to open chat</p>
+            <div class="card bg-base-200 border border-base-300 shadow-sm overflow-hidden min-w-0">
+              <div class="px-4 py-3 sm:px-5 sm:py-4 border-b border-base-300 flex justify-between items-center">
+                <div class="min-w-0">
+                  <h4 class="font-bold text-sm sm:text-base truncate">Most Active Conversations</h4>
+                  <p class="text-[11px] sm:text-xs opacity-50 truncate">Top contacts ranked by total volume · Click to open chat</p>
                 </div>
-                <span class="badge badge-primary badge-sm font-semibold">Top 10</span>
+                <span class="badge badge-primary badge-sm font-semibold flex-shrink-0">Top 10</span>
               </div>
-              <div class="overflow-x-auto">
-                <table class="table table-sm w-full">
+              <div class="overflow-x-auto w-full">
+                <table class="table table-xs sm:table-sm w-full">
                   <thead>
-                    <tr class="opacity-60 text-xs">
-                      <th class="w-12 text-center">#</th>
+                    <tr class="opacity-60 text-[10px] sm:text-xs">
+                      <th class="w-8 sm:w-12 text-center">#</th>
                       <th>Contact</th>
                       <th class="text-right">Messages</th>
-                      <th class="w-48 text-center">Sent / Received Ratio</th>
+                      <th class="w-36 lg:w-48 text-center hidden sm:table-cell">Sent / Received Ratio</th>
                     </tr>
                   </thead>
                   <tbody id="top-contacts-tbody" class="divide-y divide-base-300">
@@ -715,22 +766,28 @@
     if (tabUnknown) tabUnknown.onclick = () => setContactTab('unknown');
 
     // Dual-pane / Responsive View Management (like WhatsApp Web)
+    let isMobileChatOpen = false;
+
     function openChatView() {
+      isMobileChatOpen = true;
       if (window.innerWidth < 768) {
-        sidebar.classList.add('hidden');
-        mainChat.classList.remove('hidden');
+        mainChat.classList.remove('translate-x-full', 'pointer-events-none');
+        mainChat.classList.add('translate-x-0', 'pointer-events-auto');
       } else {
         sidebar.classList.remove('hidden');
-        mainChat.classList.remove('hidden');
+        mainChat.classList.remove('translate-x-full', 'pointer-events-none');
+        mainChat.classList.add('translate-x-0', 'pointer-events-auto');
       }
     }
 
     function openListView() {
+      isMobileChatOpen = false;
       if (isStatsOpen) closeStatsView();
       if (isGalleryOpen) closeGalleryView();
       sidebar.classList.remove('hidden');
       if (window.innerWidth < 768) {
-        mainChat.classList.add('hidden');
+        mainChat.classList.remove('translate-x-0', 'pointer-events-auto');
+        mainChat.classList.add('translate-x-full', 'pointer-events-none');
       }
       if (chatDatePill) chatDatePill.classList.add('hidden');
     }
@@ -1035,6 +1092,7 @@
 
       // Switch header action controls
       if (btnGalleryToggle) btnGalleryToggle.classList.add('hidden');
+      if (btnBack) btnBack.title = 'Back to Chat';
       const statsHeaderActions = document.getElementById('stats-header-actions');
       if (statsHeaderActions) statsHeaderActions.classList.remove('hidden');
 
@@ -1062,6 +1120,7 @@
       if (btnStatsToggle) {
         btnStatsToggle.classList.remove('btn-active', 'text-primary');
       }
+      if (btnBack) btnBack.title = 'Back to Contacts';
 
       const statsHeaderActions = document.getElementById('stats-header-actions');
       if (statsHeaderActions) statsHeaderActions.classList.add('hidden');
@@ -1096,10 +1155,21 @@
 
       if (statsLoading) {
         statsLoading.innerHTML = `
-          <div class="hero-content text-center opacity-60">
-            <div class="flex flex-col items-center gap-3">
-              <span class="loading loading-spinner loading-lg text-primary"></span>
-              <p class="text-sm font-medium">Aggregating lifetime archive telemetry...</p>
+          <div class="w-full max-w-5xl mx-auto space-y-4">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
+              <div class="skeleton h-24 rounded-box"></div>
+              <div class="skeleton h-24 rounded-box"></div>
+              <div class="skeleton h-24 rounded-box"></div>
+              <div class="skeleton h-24 rounded-box"></div>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+              <div class="skeleton h-56 sm:h-64 rounded-box"></div>
+              <div class="skeleton h-56 sm:h-64 rounded-box"></div>
+            </div>
+            <div class="skeleton h-60 rounded-box"></div>
+            <div class="flex justify-center items-center gap-2 pt-2 opacity-60">
+              <span class="loading loading-spinner loading-sm text-primary"></span>
+              <span class="text-xs font-medium">Aggregating lifetime telemetry...</span>
             </div>
           </div>
         `;
@@ -1137,6 +1207,13 @@
       } finally {
         if (refreshIcon) refreshIcon.classList.remove('animate-spin');
       }
+    }
+
+    function formatCompactNumber(n) {
+      const num = Number(n) || 0;
+      if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+      if (num >= 1000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+      return num.toLocaleString();
     }
 
     function formatYmLabel(ym) {
@@ -1236,7 +1313,7 @@
                 color: '#a6adba',
                 maxRotation: 0,
                 autoSkip: true,
-                maxTicksLimit: 12,
+                maxTicksLimit: window.innerWidth < 640 ? 6 : 12,
                 font: { size: 10 }
               }
             },
@@ -1315,7 +1392,9 @@
               grid: { display: false },
               ticks: {
                 color: '#a6adba',
-                font: { size: 10 }
+                font: { size: window.innerWidth < 640 ? 9 : 10 },
+                autoSkip: true,
+                maxTicksLimit: window.innerWidth < 640 ? 12 : 24
               }
             },
             y: {
@@ -1360,22 +1439,27 @@
             <span class="${badgeClass}">${rank}</span>
           </td>
           <td>
-            <div class="flex items-center gap-2.5">
+            <div class="flex items-center gap-2 sm:gap-2.5">
               <div class="avatar placeholder flex-shrink-0">
-                <div class="bg-neutral text-neutral-content rounded-full w-8 h-8 flex items-center justify-center font-bold text-xs">
+                <div class="bg-neutral text-neutral-content rounded-full w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center font-bold text-xs">
                   <span>${getInitials(c.name)}</span>
                 </div>
               </div>
               <div class="min-w-0">
-                <div class="font-bold text-sm truncate max-w-[180px] sm:max-w-xs">${escapeHtml(c.name)}</div>
-                <div class="text-[11px] opacity-60 truncate max-w-[180px] sm:max-w-xs">${escapeHtml(c.address)}</div>
+                <div class="font-bold text-xs sm:text-sm truncate max-w-[130px] sm:max-w-xs">${escapeHtml(c.name)}</div>
+                <div class="text-[10px] sm:text-[11px] opacity-60 truncate max-w-[130px] sm:max-w-xs">${escapeHtml(c.address)}</div>
+                <div class="sm:hidden flex items-center gap-1 mt-0.5 text-[9px] opacity-70 font-mono">
+                  <span class="text-primary font-medium">${sPct}%S</span>
+                  <span>/</span>
+                  <span class="text-secondary font-medium">${rPct}%R</span>
+                </div>
               </div>
             </div>
           </td>
-          <td class="text-right font-mono font-bold text-sm">
+          <td class="text-right font-mono font-bold text-xs sm:text-sm whitespace-nowrap">
             ${total.toLocaleString()}
           </td>
-          <td>
+          <td class="hidden sm:table-cell">
             <div class="flex flex-col gap-1 items-center justify-center">
               <div class="w-full bg-base-300 h-2 rounded-full overflow-hidden flex">
                 <div class="bg-primary h-full" style="width: ${sPct}%" title="${sPct}% Sent (${sent.toLocaleString()})"></div>
@@ -1412,7 +1496,10 @@
       const sentPct = totalSentRecv > 0 ? Math.round(((s.sent || 0) / totalSentRecv) * 100) : 50;
       const recvPct = 100 - sentPct;
 
-      if (statSentRecv) statSentRecv.textContent = `${(s.sent || 0).toLocaleString()} / ${(s.received || 0).toLocaleString()}`;
+      if (statSentRecv) {
+        statSentRecv.innerHTML = `<span>${formatCompactNumber(s.sent || 0)}</span> <span class="opacity-40 font-normal">/</span> <span>${formatCompactNumber(s.received || 0)}</span>`;
+        statSentRecv.title = `${(s.sent || 0).toLocaleString()} Sent / ${(s.received || 0).toLocaleString()} Received`;
+      }
       if (statSentBar) statSentBar.style.width = `${sentPct}%`;
       if (statRecvBar) statRecvBar.style.width = `${recvPct}%`;
       if (statSentPct) statSentPct.textContent = `${sentPct}% Sent`;
@@ -1499,6 +1586,22 @@
     // Cache for client-side contact prefix filtering
     let allContactsCache = [];
 
+    function renderContactsSkeleton() {
+      return `
+        <div class="p-3 space-y-3">
+          ${[1, 2, 3, 4, 5, 6, 7].map(() => `
+            <div class="flex items-center gap-3">
+              <div class="skeleton w-10 h-10 rounded-full shrink-0"></div>
+              <div class="flex flex-col gap-1.5 flex-1 min-w-0">
+                <div class="skeleton h-3.5 w-2/5"></div>
+                <div class="skeleton h-2.5 w-3/5"></div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
     // Load Normal Contacts (Paged)
     async function loadContacts(append = false) {
       if (isFetchingContacts || isSearchMode) return;
@@ -1506,7 +1609,7 @@
 
       if (!append) {
         contactsOffset = 0;
-        contactsListEl.innerHTML = '<div class="p-4 text-center opacity-50 text-sm">Loading contacts...</div>';
+        contactsListEl.innerHTML = renderContactsSkeleton();
       }
 
       try {
@@ -1819,7 +1922,22 @@
       openChatView();
       fetchConversationMedia(contact.address);
 
-      viewport.innerHTML = `<div class="hero h-full"><div class="hero-content opacity-50">Loading conversation...</div></div>`;
+      viewport.innerHTML = `
+        <div class="p-4 space-y-4 max-w-2xl mx-auto w-full">
+          <div class="chat chat-start">
+            <div class="chat-bubble skeleton w-48 h-12"></div>
+          </div>
+          <div class="chat chat-end">
+            <div class="chat-bubble skeleton w-64 h-16"></div>
+          </div>
+          <div class="chat chat-start">
+            <div class="chat-bubble skeleton w-36 h-10"></div>
+          </div>
+          <div class="chat chat-end">
+            <div class="chat-bubble skeleton w-52 h-14"></div>
+          </div>
+        </div>
+      `;
       if (chatDatePill) chatDatePill.classList.add('hidden');
       messages = [];
       hasMoreOlder = true;
@@ -1978,7 +2096,7 @@
     function updateVisibleDatePill() {
       if (!chatDatePill) return;
       // On mobile (< 768px), if main chat is hidden (user is in contacts list), never show pill
-      if (window.innerWidth < 768 && mainChat.classList.contains('hidden')) {
+      if (window.innerWidth < 768 && !isMobileChatOpen) {
         chatDatePill.classList.add('hidden');
         return;
       }
@@ -2101,19 +2219,25 @@
       searchInput.focus();
     };
 
-    btnBack.onclick = openListView;
+    btnBack.onclick = () => {
+      if (isStatsOpen) {
+        closeStatsView();
+      } else {
+        openListView();
+      }
+    };
 
     window.addEventListener('resize', () => {
       if (window.innerWidth >= 768) {
-        sidebar.classList.remove('hidden');
-        mainChat.classList.remove('hidden');
+        mainChat.classList.remove('translate-x-full', 'pointer-events-none');
+        mainChat.classList.add('translate-x-0', 'pointer-events-auto');
       } else {
-        if (currentContact) {
-          sidebar.classList.add('hidden');
-          mainChat.classList.remove('hidden');
+        if (isMobileChatOpen || currentContact || isStatsOpen) {
+          mainChat.classList.remove('translate-x-full', 'pointer-events-none');
+          mainChat.classList.add('translate-x-0', 'pointer-events-auto');
         } else {
-          sidebar.classList.remove('hidden');
-          mainChat.classList.add('hidden');
+          mainChat.classList.remove('translate-x-0', 'pointer-events-auto');
+          mainChat.classList.add('translate-x-full', 'pointer-events-none');
         }
       }
       updateVisibleDatePill();
@@ -2216,7 +2340,7 @@
           executeGlobalSearch('');
           return;
         }
-        if (window.innerWidth < 768 && !mainChat.classList.contains('hidden')) {
+        if (window.innerWidth < 768 && isMobileChatOpen) {
           openListView();
           return;
         }
