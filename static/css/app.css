@@ -1,0 +1,46 @@
+/* PWA & Mobile Touch Polish */
+html, body {
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+}
+button, .btn, a, .contact-item, .tab {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.select-none, .navbar, .tab, .stat, .badge, .btn {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+@media (max-width: 767.98px) {
+  #main-chat {
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: transform;
+  }
+}
+
+@supports (padding-top: env(safe-area-inset-top)) {
+  .pwa-header {
+    padding-top: env(safe-area-inset-top);
+    height: calc(4rem + env(safe-area-inset-top));
+    min-height: calc(4rem + env(safe-area-inset-top));
+  }
+}
+
+@keyframes jumpContourGlow {
+  0% {
+    filter: drop-shadow(0 0 0px oklch(var(--p) / 0)) drop-shadow(0 0 0px oklch(var(--p) / 0));
+  }
+  20% {
+    filter: drop-shadow(0 0 2px oklch(var(--p) / 0.9)) drop-shadow(0 0 8px oklch(var(--p) / 0.75));
+  }
+  55% {
+    filter: drop-shadow(0 0 2px oklch(var(--p) / 0.7)) drop-shadow(0 0 6px oklch(var(--p) / 0.5));
+  }
+  100% {
+    filter: drop-shadow(0 0 0px oklch(var(--p) / 0)) drop-shadow(0 0 0px oklch(var(--p) / 0));
+  }
+}
+.chat-bubble-highlight {
+  animation: jumpContourGlow 2.5s ease-out forwards;
+}
